@@ -1,0 +1,102 @@
+{
+  "info": {
+    "name": "Stroke Risk Monitoring API",
+    "description": "IBM Granite-powered stroke risk monitoring — all five agents + report summary.\nBase URL: http://localhost:5000/api/v1",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000/api/v1",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "url": "{{base_url}}/health",
+        "description": "Verify the API is running."
+      }
+    },
+    {
+      "name": "Agent 1 — Stroke Risk Assessment",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/assess/stroke-risk",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Jane Smith\",\n  \"age\": 62,\n  \"gender\": \"Female\",\n  \"medical_history\": \"Type 2 diabetes, atrial fibrillation\",\n  \"bp_systolic\": 158,\n  \"bp_diastolic\": 95,\n  \"blood_glucose\": 138.0,\n  \"cholesterol\": 224.0,\n  \"bmi\": 29.4,\n  \"smoking_status\": \"Former smoker\",\n  \"activity_level\": \"Sedentary\"\n}"
+        },
+        "description": "Assess overall stroke risk for a patient.\n\nReturns: risk_score (0-100), risk_level (Low/Moderate/High/Critical), key_factors, summary, recommendation."
+      }
+    },
+    {
+      "name": "Agent 2 — Blood Pressure Monitoring",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/monitor/blood-pressure",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"current\": {\n    \"systolic\": 182,\n    \"diastolic\": 122,\n    \"timestamp\": \"2024-11-19T08:30:00Z\"\n  },\n  \"history\": [\n    { \"systolic\": 145, \"diastolic\": 95, \"timestamp\": \"2024-11-18T08:00:00Z\" },\n    { \"systolic\": 150, \"diastolic\": 98, \"timestamp\": \"2024-11-17T08:00:00Z\" },\n    { \"systolic\": 148, \"diastolic\": 96, \"timestamp\": \"2024-11-16T08:00:00Z\" }\n  ]\n}"
+        },
+        "description": "Classify a BP reading and analyse the recent trend.\n\nReturns: classification, trend, trend_summary, requires_immediate_attention (bool), action.\n\n⚠️ requires_immediate_attention=true means Hypertensive Crisis — trigger immediate alert."
+      }
+    },
+    {
+      "name": "Agent 3 — Health Risk Trend Analysis",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/analyse/trends",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"glucose_latest\": 132.0,\n  \"glucose_avg\": 118.0,\n  \"glucose_change_pct\": 11.9,\n  \"cholesterol_latest\": 215.0,\n  \"cholesterol_avg\": 205.0,\n  \"cholesterol_change_pct\": 4.9,\n  \"bmi_latest\": 30.5,\n  \"bmi_avg\": 29.8,\n  \"bmi_change_pct\": 2.3\n}"
+        },
+        "description": "Analyse longitudinal trends for glucose, cholesterol, and BMI over the last 30 readings.\n\nReturns: per-metric trend direction, alerts[] for threshold breaches, overall_trend, narrative."
+      }
+    },
+    {
+      "name": "Agent 4 — Lifestyle Advisory",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/advise/lifestyle",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"age\": 62,\n  \"gender\": \"Female\",\n  \"bmi\": 29.4,\n  \"smoking_status\": \"Former smoker\",\n  \"activity_level\": \"Sedentary\",\n  \"risk_level\": \"High\",\n  \"bp_systolic\": 158,\n  \"bp_diastolic\": 95,\n  \"blood_glucose\": 138.0,\n  \"cholesterol\": 224.0\n}"
+        },
+        "description": "Generate a personalised lifestyle health plan (diet, exercise, smoking, stress, medication adherence).\n\nOptional: risk_level (pre-computed from Agent 1 output).\nGuidelines: WHO / AHA / NHS."
+      }
+    },
+    {
+      "name": "Agent 5 — Emergency Symptom Alert",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/alert/emergency",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"symptoms_text\": \"Sudden face drooping on the left side, arm weakness, and slurred speech starting 10 minutes ago.\"\n}"
+        },
+        "description": "Assess reported symptoms for FAST stroke warning signs.\n\n⚠️ SAFETY: If urgency=EMERGENCY is returned, trigger immediate alert and display the emergency_message to the user."
+      }
+    },
+    {
+      "name": "Hospital Report Summary",
+      "request": {
+        "method": "POST",
+        "url": "{{base_url}}/report/summarise",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"hospital_name\": \"City General Hospital\",\n  \"report_text\": \"Patient admitted 2024-11-10. Diagnosed with hypertension (BP 165/105). History of TIA. Prescribed amlodipine 5mg. Fasting glucose 142 mg/dL. Total cholesterol 230 mg/dL. Advised lifestyle changes and follow-up in 4 weeks.\"\n}"
+        },
+        "description": "Extract stroke-relevant information from a hospital discharge report.\n\nReturns: key_diagnoses, relevant_medications, BP/glucose/cholesterol readings, cardiovascular_history, summary.\n\nOnly the first 3000 characters of report_text are processed."
+      }
+    }
+  ]
+}

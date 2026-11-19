@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Clinical Dashboard — Stroke Risk Monitor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;
+  --border:#1e2d45;--accent:#3b82f6;--accent2:#8b5cf6;
+  --danger:#ef4444;--warn:#f59e0b;--ok:#10b981;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --glow-blue:0 0 20px rgba(59,130,246,.3);
+  --glow-red:0 0 25px rgba(239,68,68,.5);
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(59,130,246,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+
+/* ── Header ── */
+header{position:sticky;top:0;z-index:200;background:rgba(10,14,26,.88);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;align-items:center;gap:14px;height:58px;}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent2),#ec4899);
+  display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo h1{font-size:15px;font-weight:700}
+.logo h1 span{color:var(--accent2)}
+.tag{font-size:10px;padding:2px 8px;border-radius:20px;border:1px solid;font-weight:600;letter-spacing:.5px}
+.tag-blue{border-color:var(--accent);color:var(--accent);background:rgba(59,130,246,.1)}
+.tag-purple{border-color:var(--accent2);color:var(--accent2);background:rgba(139,92,246,.1)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.api-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.api-lbl{font-size:12px;color:var(--muted)}
+.hdr-name{font-size:13px;color:var(--muted)}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent2),#ec4899);
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+.btn-logout{background:none;border:1px solid var(--border);border-radius:6px;
+  padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;
+  transition:all .15s}
+.btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+#clock{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+
+/* ── Layout ── */
+.wrapper{display:flex;min-height:calc(100vh - 58px)}
+nav{width:220px;flex-shrink:0;background:rgba(17,24,39,.7);backdrop-filter:blur(12px);
+  border-right:1px solid var(--border);padding:16px 0;
+  position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;}
+nav::-webkit-scrollbar{width:4px}
+nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.nav-sec{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+  padding:14px 18px 6px;font-weight:600}
+nav ul{list-style:none}
+nav li a{display:flex;align-items:center;gap:10px;padding:9px 18px;
+  color:var(--muted);font-size:13px;border-left:2px solid transparent;
+  transition:all .15s;cursor:pointer;text-decoration:none;}
+nav li a:hover{background:rgba(255,255,255,.04);color:var(--text);border-left-color:var(--border)}
+nav li a.active{background:rgba(139,92,246,.1);color:var(--accent2);border-left-color:var(--accent2)}
+.nav-badge{margin-left:auto;font-size:9px;font-weight:700;background:var(--danger);
+  color:#fff;border-radius:10px;padding:1px 6px;animation:pb 1.5s infinite}
+@keyframes pb{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+
+main{flex:1;padding:28px;max-width:1000px}
+
+/* ── Page header ── */
+.pg-hdr{margin-bottom:22px}
+.pg-hdr h2{font-size:21px;font-weight:700;margin-bottom:3px}
+.pg-hdr p{color:var(--muted);font-size:13px}
+.crumb{font-size:11px;color:var(--muted);margin-bottom:6px}
+.crumb span{color:var(--accent2)}
+
+/* ── Stat cards ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--glow-blue)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent2),#ec4899)}
+.sc-icon{font-size:20px;margin-bottom:8px}
+.sc-val{font-size:26px;font-weight:800;line-height:1}
+.sc-lbl{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.sc-sub{font-size:11px;margin-top:5px;font-weight:600}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card-blue::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.1),transparent 70%);pointer-events:none}
+.card-purple::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.1),transparent 70%);pointer-events:none}
+.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card p.sub{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+/* ── Patient table ── */
+.pt-table{width:100%;border-collapse:collapse;font-size:13px}
+.pt-table th{text-align:left;padding:9px 12px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)}
+.pt-table td{padding:11px 12px;border-bottom:1px solid rgba(30,45,69,.5)}
+.pt-table tr:last-child td{border-bottom:none}
+.pt-table tr:hover td{background:rgba(255,255,255,.02);cursor:pointer}
+.pill{display:inline-block;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:600}
+.pill-ok{background:rgba(16,185,129,.15);color:var(--ok)}
+.pill-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.pill-danger{background:rgba(239,68,68,.15);color:var(--danger)}
+.pill-blue{background:rgba(59,130,246,.15);color:var(--accent)}
+
+/* ── Forms ── */
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.field{display:flex;flex-direction:column;gap:5px}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+input,select,textarea{background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:9px 12px;font-size:13px;color:var(--text);
+  font-family:inherit;width:100%;transition:border .15s,box-shadow .15s;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--accent2);
+  box-shadow:0 0 0 3px rgba(139,92,246,.15)}
+input::placeholder,textarea::placeholder{color:#475569}
+select option{background:var(--surface2)}
+textarea{resize:vertical;min-height:90px}
+.span2{grid-column:span 2}
+.span3{grid-column:span 3}
+
+/* ── Buttons ── */
+.btn-row{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--accent2),#ec4899);
+  color:#fff;box-shadow:0 4px 15px rgba(139,92,246,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(139,92,246,.45)}
+.btn-primary:disabled{opacity:.5;transform:none;cursor:not-allowed}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;
+  box-shadow:0 4px 15px rgba(239,68,68,.3)}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(239,68,68,.5)}
+
+/* ── Spinner ── */
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+.spinner.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── Result box ── */
+.result-box{margin-top:18px;border-radius:10px;overflow:hidden;display:none;border:1px solid var(--border)}
+.result-box.show{display:block}
+.rh{padding:11px 16px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.rh-ok{background:rgba(16,185,129,.15);color:#6ee7b7;border-bottom:1px solid rgba(16,185,129,.2)}
+.rh-err{background:rgba(239,68,68,.15);color:#fca5a5;border-bottom:1px solid rgba(239,68,68,.2)}
+.rh-emergency{background:rgba(239,68,68,.2);color:#fca5a5;border-bottom:1px solid var(--danger);
+  animation:flash 1s infinite}
+@keyframes flash{0%,100%{background:rgba(239,68,68,.2)}50%{background:rgba(239,68,68,.35)}}
+.result-body{background:rgba(0,0,0,.3);padding:14px;font-size:12px;overflow-x:auto}
+pre{white-space:pre-wrap;word-break:break-word;font-family:"Cascadia Code","Consolas",monospace;color:#e2e8f0}
+
+/* ── Toast ── */
+#tc{position:fixed;top:70px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;min-width:260px;max-width:360px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;align-items:flex-start;gap:10px;
+  animation:tin .3s ease}
+.toast.removing{animation:tout .3s ease forwards}
+@keyframes tin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{to{transform:translateX(110%);opacity:0}}
+.t-emergency{border-color:var(--danger);background:rgba(239,68,68,.12)}
+.t-ok{border-color:var(--ok);background:rgba(16,185,129,.1)}
+.t-warn{border-color:var(--warn);background:rgba(245,158,11,.1)}
+.t-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.t-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.t-msg{font-size:12px;color:var(--muted)}
+.t-close{margin-left:auto;cursor:pointer;background:none;border:none;color:var(--muted);font-size:15px}
+
+/* ── Activity feed ── */
+.feed{max-height:200px;overflow-y:auto;display:flex;flex-direction:column;gap:8px}
+.feed::-webkit-scrollbar{width:4px}
+.feed::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.feed-item{background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 14px;display:flex;align-items:center;gap:10px;font-size:12px}
+.feed-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.feed-time{font-size:11px;color:var(--muted);margin-left:auto;white-space:nowrap}
+
+/* ── Nb cards ── */
+.nb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.nb-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;transition:all .3s}
+.nb-card.notified{border-color:var(--ok);background:rgba(16,185,129,.08);box-shadow:0 0 12px rgba(16,185,129,.2)}
+.nb-name{font-weight:700;font-size:13px;margin-bottom:2px}
+.nb-phone{font-size:11px;color:var(--muted)}
+.nb-addr{font-size:11px;color:var(--muted);margin-top:2px}
+.nb-st{margin-top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block}
+.nb-idle{background:rgba(148,163,184,.1);color:var(--muted)}
+.nb-sent{background:rgba(16,185,129,.15);color:var(--ok)}
+
+@media(max-width:768px){
+  nav{display:none}.stat-row{grid-template-columns:1fr 1fr}
+  .grid2,.grid3{grid-template-columns:1fr}.span2,.span3{grid-column:span 1}
+  .fast-row{grid-template-columns:1fr 1fr}.nb-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="tc"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🏥</div>
+    <h1>Clinical <span>Dashboard</span></h1>
+  </div>
+  <div style="display:flex;gap:8px;margin-left:4px">
+    <span class="tag tag-blue">IBM GRANITE</span>
+    <span class="tag tag-purple">watsonx.ai</span>
+  </div>
+  <div class="hdr-right">
+    <div style="display:flex;align-items:center;gap:6px">
+      <span class="api-dot" id="api-dot"></span>
+      <span class="api-lbl" id="api-lbl">Checking…</span>
+    </div>
+    <span id="clock"></span>
+    <span class="hdr-name" id="hdr-name">Dr.</span>
+    <div class="avatar" id="avatar-icon">D</div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="wrapper">
+  <nav>
+    <div class="nav-sec">Overview</div>
+    <ul>
+      <li><a data-page="dashboard" class="active"><span class="nav-icon">📊</span>Dashboard</a></li>
+      <li><a data-page="patients"><span class="nav-icon">👥</span>Patient List</a></li>
+    </ul>
+    <div class="nav-sec">AI Agents</div>
+    <ul>
+      <li><a data-page="stroke"><span class="nav-icon">🔬</span>Stroke Risk</a></li>
+      <li><a data-page="bp"><span class="nav-icon">❤️</span>Blood Pressure</a></li>
+      <li><a data-page="trends"><span class="nav-icon">📈</span>Health Trends</a></li>
+      <li><a data-page="lifestyle"><span class="nav-icon">🌿</span>Lifestyle Advisory</a></li>
+    </ul>
+    <div class="nav-sec">Tools</div>
+    <ul>
+      <li><a data-page="report"><span class="nav-icon">📄</span>Hospital Report</a></li>
+    </ul>
+  </nav>
+
+  <main id="main-content"></main>
+</div>
+
+<script>
+const API = '/api/v1';
+let _feed = [];
+
+/* ─── Auth ───────────────────────────────────────────────────────────────── */
+(function(){
+  const role = sessionStorage.getItem('srm_role');
+  if(role !== 'professional') window.location.href = '/';
+  const user = sessionStorage.getItem('srm_user') || 'doctor@demo.com';
+  const name = 'Dr. ' + user.split('@')[0].replace(/\b\w/g,c=>c.toUpperCase());
+  document.getElementById('hdr-name').textContent = name;
+  document.getElementById('avatar-icon').textContent = 'D';
+})();
+function logout(){ sessionStorage.clear(); window.location.href = '/'; }
+
+/* ─── Clock ──────────────────────────────────────────────────────────────── */
+function tickClock(){ const e=document.getElementById('clock'); if(e) e.textContent=new Date().toLocaleTimeString(); }
+setInterval(tickClock,1000); tickClock();
+
+/* ─── Health check ───────────────────────────────────────────────────────── */
+async function checkHealth(){
+  try{
+    const r=await fetch(`${API}/health`); const j=await r.json();
+    const dot=document.getElementById('api-dot'); const lbl=document.getElementById('api-lbl');
+    if(j.status==='ok'){
+      if(dot){dot.style.background='var(--ok)';dot.style.boxShadow='0 0 8px var(--ok)'}
+      if(lbl) lbl.textContent='API Online';
+    }
+  }catch{
+    const dot=document.getElementById('api-dot'); const lbl=document.getElementById('api-lbl');
+    if(dot){dot.style.background='var(--danger)';dot.style.boxShadow='0 0 8px var(--danger)'}
+    if(lbl) lbl.textContent='API Offline';
+  }
+}
+setInterval(checkHealth,30000); checkHealth();
+
+/* ─── Toast ──────────────────────────────────────────────────────────────── */
+function toast(type,title,msg,dur=5000){
+  const icons={emergency:'🚨',ok:'✅',warn:'⚠️',info:'ℹ️'};
+  const cls={emergency:'t-emergency',ok:'t-ok',warn:'t-warn',info:''};
+  const t=document.createElement('div');
+  t.className=`toast ${cls[type]||''}`;
+  t.innerHTML=`<span class="t-icon">${icons[type]||'ℹ️'}</span>
+    <div><div class="t-title">${title}</div><div class="t-msg">${msg}</div></div>
+    <button class="t-close" onclick="this.closest('.toast').remove()">✕</button>`;
+  document.getElementById('tc').prepend(t);
+  if(dur) setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),300);},dur);
+}
+
+/* ─── Feed ───────────────────────────────────────────────────────────────── */
+function addFeed(color,text){
+  _feed.unshift({color,text,time:new Date().toLocaleTimeString()});
+  if(_feed.length>20)_feed.pop(); renderFeed();
+}
+function renderFeed(){
+  const el=document.getElementById('activity-feed'); if(!el) return;
+  el.innerHTML=_feed.map(f=>`
+    <div class="feed-item"><span class="feed-dot" style="background:${f.color}"></span>
+    <span>${f.text}</span><span class="feed-time">${f.time}</span></div>`)
+    .join('')||'<div style="color:var(--muted);font-size:12px;padding:8px">No activity yet.</div>';
+}
+
+/* ─── API helper ─────────────────────────────────────────────────────────── */
+async function callAPI(ep,payload,btnId,spinId,resultId,onSuccess){
+  const btn=document.getElementById(btnId); const spin=document.getElementById(spinId);
+  if(btn) btn.disabled=true; if(spin) spin.classList.add('show');
+  try{
+    const r=await fetch(`${API}/${ep}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    const json=await r.json();
+    showResult(resultId,json.success,json);
+    if(onSuccess) onSuccess(json);
+    return json;
+  }catch(e){showResult(resultId,false,{error:e.message});toast('warn','Request Failed',e.message);}
+  finally{if(btn) btn.disabled=false; if(spin) spin.classList.remove('show');}
+}
+function showResult(id,ok,data){
+  const box=document.getElementById(id); if(!box) return;
+  const isEm=data?.data?.urgency==='EMERGENCY'||data?.data?.requires_immediate_attention;
+  const hc=isEm?'rh-emergency':ok?'rh-ok':'rh-err';
+  const ht=isEm?'🚨 EMERGENCY — Act immediately':ok?'✓ Response received':'✗ Error';
+  box.className='result-box show';
+  box.innerHTML=`<div class="rh ${hc}">${ht}</div><div class="result-body"><pre>${JSON.stringify(data,null,2)}</pre></div>`;
+}
+
+/* ─── Sample patients ────────────────────────────────────────────────────── */
+const PATIENTS = [
+  {id:'P001',name:'Jane Smith',age:62,gender:'Female',risk:'High',bp:'158/97',glucose:138,last:'Today 09:14',phone:'+91-98765-00001'},
+  {id:'P002',name:'Rajan Mehta',age:71,gender:'Male',risk:'Critical',bp:'182/120',glucose:155,last:'Today 08:50',phone:'+91-98765-00002'},
+  {id:'P003',name:'Meena Pillai',age:55,gender:'Female',risk:'Moderate',bp:'138/88',glucose:118,last:'Yesterday',phone:'+91-98765-00003'},
+  {id:'P004',name:'Arjun Das',age:48,gender:'Male',risk:'Low',bp:'122/78',glucose:98,last:'2 days ago',phone:'+91-98765-00004'},
+  {id:'P005',name:'Sunita Verma',age:67,gender:'Female',risk:'High',bp:'162/104',glucose:142,last:'Today 10:30',phone:'+91-98765-00005'},
+];
+
+function riskPill(r){
+  const m={Low:'pill-ok',Moderate:'pill-blue',High:'pill-warn',Critical:'pill-danger'};
+  return `<span class="pill ${m[r]||'pill-blue'}">${r}</span>`;
+}
+
+/* ─── PAGES ──────────────────────────────────────────────────────────────── */
+
+/* ─── SOS Listener (polls localStorage channel set by patient) ──────────── */
+let _lastSosId = null;
+function pollSosChannel(){
+  try{
+    const raw = localStorage.getItem('srm_sos_event');
+    if(!raw) return;
+    const ev = JSON.parse(raw);
+    if(!ev || ev.id === _lastSosId) return;
+    _lastSosId = ev.id;
+
+    // Flash the page banner
+    const banner = document.getElementById('sos-banner');
+    if(banner){
+      document.getElementById('sos-banner-name').textContent = ev.patient_name || 'Unknown Patient';
+      document.getElementById('sos-banner-time').textContent = new Date(ev.time).toLocaleTimeString();
+      banner.style.display = 'block';
+    }
+    // Add to feed
+    addFeed('#ef4444','🚨 SOS triggered by '+ev.patient_name);
+    // Persistent emergency toast
+    toast('emergency','🚨 PATIENT SOS!',ev.patient_name+' has triggered an emergency alert.',0);
+  }catch{}
+}
+setInterval(pollSosChannel, 2000);
+
+function dismissSosBanner(){
+  const b=document.getElementById('sos-banner'); if(b) b.style.display='none';
+}
+
+function pageDashboard(){
+  return `
+<!-- Emergency SOS Banner (hidden until SOS fires) -->
+<div id="sos-banner" style="display:none;background:rgba(239,68,68,.18);border:2px solid var(--danger);
+  border-radius:14px;padding:16px 20px;margin-bottom:20px;animation:flash 1.2s infinite">
+  <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+    <span style="font-size:32px">🚨</span>
+    <div style="flex:1">
+      <div style="font-size:16px;font-weight:800;color:#fca5a5">PATIENT SOS EMERGENCY</div>
+      <div style="font-size:13px;color:var(--text);margin-top:3px">
+        <strong id="sos-banner-name">—</strong> has pressed the emergency SOS button
+        <span style="color:var(--muted);margin-left:8px" id="sos-banner-time"></span>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:10px 14px;text-align:center">
+        <div style="font-size:18px">🚑</div>
+        <div style="font-size:11px;color:var(--ok);font-weight:700;margin-top:2px">AMB-04 Dispatched</div>
+        <div style="font-size:10px;color:var(--muted)">ETA ~7 min</div>
+      </div>
+      <div style="background:rgba(16,185,129,.15);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:10px 14px;text-align:center">
+        <div style="font-size:18px">👥</div>
+        <div style="font-size:11px;color:var(--ok);font-weight:700;margin-top:2px">3 Neighbors Alerted</div>
+        <div style="font-size:10px;color:var(--muted)">Broadcast sent</div>
+      </div>
+      <button class="btn btn-secondary" onclick="dismissSosBanner()" style="font-size:12px;padding:7px 14px;align-self:center">✓ Acknowledge</button>
+    </div>
+  </div>
+</div>
+
+<div class="pg-hdr">
+  <div class="crumb">Clinical / <span>Dashboard</span></div>
+  <h2>🏥 Clinical Overview</h2>
+  <p>IBM Granite AI · ibm/granite-3-8b-instruct · watsonx.ai</p>
+</div>
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="sc-icon">👥</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--accent2),#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent">5</div>
+    <div class="sc-lbl">Active Patients</div>
+    <div class="sc-sub" style="color:var(--ok)">● All monitored</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">🚨</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,#ef4444,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent">2</div>
+    <div class="sc-lbl">High / Critical Risk</div>
+    <div class="sc-sub" style="color:var(--danger)">● Requires attention</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">🤖</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">5</div>
+    <div class="sc-lbl">AI Agents Active</div>
+    <div class="sc-sub" style="color:var(--ok)">● All running</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">✅</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--ok),#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">60</div>
+    <div class="sc-lbl">Tests Passing</div>
+    <div class="sc-sub" style="color:var(--ok)">● 100%</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px">
+  <div class="card card-purple">
+    <h3>⚠️ Priority Alerts</h3>
+    <p class="sub">Patients needing immediate attention</p>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:8px;padding:12px;cursor:pointer" onclick="showPage('stroke')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:13px">Rajan Mehta (P002)</span>
+          <span class="pill pill-danger">Critical</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">BP: 182/120 mmHg — Hypertensive Crisis risk</div>
+      </div>
+      <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;cursor:pointer" onclick="showPage('stroke')">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font-weight:700;font-size:13px">Jane Smith (P001)</span>
+          <span class="pill pill-warn">High</span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-top:4px">BP: 158/97 · Glucose: 138 mg/dL — dual elevation</div>
+      </div>
+    </div>
+  </div>
+  <div class="card card-blue">
+    <h3>📋 Activity Feed</h3>
+    <p class="sub">Recent AI agent interactions</p>
+    <div class="feed" id="activity-feed">
+      <div style="color:var(--muted);font-size:12px;padding:8px">No activity yet. Run an agent to see results.</div>
+    </div>
+  </div>
+</div>
+
+<div class="card card-blue">
+  <h3>👥 Patient Quick View</h3>
+  <p class="sub">All registered patients</p>
+  <table class="pt-table">
+    <thead><tr><th>ID</th><th>Name</th><th>Age</th><th>BP</th><th>Glucose</th><th>Risk</th><th>Last Reading</th></tr></thead>
+    <tbody>
+      ${PATIENTS.map(p=>`
+      <tr onclick="showPage('stroke')">
+        <td style="color:var(--muted)">${p.id}</td>
+        <td style="font-weight:600">${p.name}</td>
+        <td>${p.age}</td>
+        <td>${p.bp}</td>
+        <td>${p.glucose} mg/dL</td>
+        <td>${riskPill(p.risk)}</td>
+        <td style="color:var(--muted);font-size:12px">${p.last}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>`;
+}
+
+function pagePatients(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">Clinical / <span>Patient List</span></div>
+  <h2>👥 Patient Management</h2>
+  <p>All registered patients under your care</p>
+</div>
+<div class="card card-purple">
+  <h3>Patient Registry</h3>
+  <p class="sub">Click a row to run an AI assessment for that patient</p>
+  <table class="pt-table">
+    <thead><tr><th>ID</th><th>Name</th><th>Age</th><th>Gender</th><th>BP</th><th>Glucose</th><th>Risk Level</th><th>Last Reading</th></tr></thead>
+    <tbody>
+      ${PATIENTS.map(p=>`
+      <tr onclick="loadPatientIntoAgent('${p.id}')" title="Click to assess with AI">
+        <td style="color:var(--accent2);font-weight:600">${p.id}</td>
+        <td style="font-weight:600">${p.name}</td>
+        <td>${p.age}</td>
+        <td>${p.gender}</td>
+        <td>${p.bp}</td>
+        <td>${p.glucose} mg/dL</td>
+        <td>${riskPill(p.risk)}</td>
+        <td style="color:var(--muted);font-size:12px">${p.last}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table>
+</div>
+<div class="card card-blue">
+  <h3>➕ Add New Patient</h3>
+  <p class="sub">Register a new patient to the monitoring system</p>
+  <div class="grid3">
+    <div class="field"><label>Full Name *</label><input id="np-name" placeholder="Full name"></div>
+    <div class="field"><label>Age *</label><input id="np-age" type="number" placeholder="Age"></div>
+    <div class="field"><label>Gender *</label>
+      <select id="np-gender"><option>Female</option><option>Male</option><option>Non-binary</option></select></div>
+    <div class="field"><label>Systolic BP</label><input id="np-sys" type="number" placeholder="120"></div>
+    <div class="field"><label>Diastolic BP</label><input id="np-dia" type="number" placeholder="80"></div>
+    <div class="field"><label>Blood Glucose</label><input id="np-gluc" type="number" placeholder="100"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="toast('ok','Patient Added','New patient registered successfully.')">➕ Register Patient</button>
+  </div>
+</div>`;
+}
+
+function loadPatientIntoAgent(id){
+  const p = PATIENTS.find(x=>x.id===id);
+  if(!p) return;
+  showPage('stroke');
+  setTimeout(()=>{
+    const sys=p.bp.split('/')[0]; const dia=p.bp.split('/')[1];
+    ['s-name','s-age','s-sys','s-dia','s-gluc'].forEach((fid,i)=>{
+      const el=document.getElementById(fid);
+      if(el) el.value=[p.name,p.age,sys,dia,p.glucose][i];
+    });
+    toast('info',`Patient loaded: ${p.name}`,'Fill remaining fields and run the assessment.');
+  },100);
+}
+
+/* ─── Agent pages (identical to professional tool) ───────────────────────── */
+function pageStroke(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">AI Agents / <span>Stroke Risk Assessment</span></div>
+  <h2>🔬 Stroke Risk Assessment</h2>
+  <p>Analyses patient vitals and history · IBM Granite · ibm/granite-3-8b-instruct</p>
+</div>
+<div class="card card-purple">
+  <h3>Patient Data</h3>
+  <p class="sub">Enter or load patient vitals to run the AI risk assessment</p>
+  <div class="grid2">
+    <div class="field"><label>Full Name</label><input id="s-name" placeholder="e.g. Jane Smith"></div>
+    <div class="field"><label>Age *</label><input id="s-age" type="number" placeholder="62"></div>
+    <div class="field"><label>Gender *</label>
+      <select id="s-gender"><option>Female</option><option>Male</option><option>Non-binary</option><option>Prefer not to say</option></select></div>
+    <div class="field"><label>Smoking Status *</label>
+      <select id="s-smoke"><option>Non-smoker</option><option>Former smoker</option><option>Current smoker</option></select></div>
+    <div class="field"><label>Activity Level *</label>
+      <select id="s-activity"><option>Sedentary</option><option>Light</option><option>Moderate</option><option>Active</option></select></div>
+    <div class="field"><label>BMI *</label><input id="s-bmi" type="number" step="0.1" placeholder="29.4"></div>
+    <div class="field"><label>Systolic BP (mmHg) *</label><input id="s-sys" type="number" placeholder="158"></div>
+    <div class="field"><label>Diastolic BP (mmHg) *</label><input id="s-dia" type="number" placeholder="95"></div>
+    <div class="field"><label>Fasting Glucose (mg/dL) *</label><input id="s-gluc" type="number" step="0.1" placeholder="138"></div>
+    <div class="field"><label>Total Cholesterol (mg/dL) *</label><input id="s-chol" type="number" step="0.1" placeholder="224"></div>
+    <div class="field span2"><label>Medical History</label><textarea id="s-hist" placeholder="e.g. Type 2 diabetes, atrial fibrillation"></textarea></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="s-btn" onclick="runStroke()">
+      🔬 Run Assessment <div class="spinner" id="s-spin"></div>
+    </button>
+    <button class="btn btn-secondary" onclick="fillSample()">Load Sample (Jane Smith)</button>
+  </div>
+  <div class="result-box" id="s-result"></div>
+</div>`;
+}
+
+function fillSample(){
+  const f=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v;};
+  f('s-name','Jane Smith');f('s-age',62);f('s-gender','Female');f('s-smoke','Former smoker');
+  f('s-activity','Sedentary');f('s-bmi',29.4);f('s-sys',158);f('s-dia',95);
+  f('s-gluc',138);f('s-chol',224);f('s-hist','Type 2 diabetes, atrial fibrillation');
+}
+async function runStroke(){
+  const payload={
+    name:document.getElementById('s-name').value||undefined,
+    age:+document.getElementById('s-age').value,
+    gender:document.getElementById('s-gender').value,
+    medical_history:document.getElementById('s-hist').value||undefined,
+    bp_systolic:+document.getElementById('s-sys').value,
+    bp_diastolic:+document.getElementById('s-dia').value,
+    blood_glucose:+document.getElementById('s-gluc').value,
+    cholesterol:+document.getElementById('s-chol').value,
+    bmi:+document.getElementById('s-bmi').value,
+    smoking_status:document.getElementById('s-smoke').value,
+    activity_level:document.getElementById('s-activity').value,
+  };
+  addFeed('var(--accent2)','Stroke risk assessment started');
+  await callAPI('assess/stroke-risk',payload,'s-btn','s-spin','s-result',json=>{
+    if(json.success){
+      const lvl=json.data?.risk_level; const sc=json.data?.risk_score;
+      addFeed(lvl==='Critical'?'var(--danger)':lvl==='High'?'var(--warn)':'var(--ok)',`Risk: ${lvl} (${sc}/100)`);
+      toast(lvl==='Critical'||lvl==='High'?'warn':'ok',`Risk Level: ${lvl}`,`Score: ${sc}/100`);
+    }
+  });
+}
+
+function pageBP(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">AI Agents / <span>Blood Pressure Monitoring</span></div>
+  <h2>❤️ Blood Pressure Monitoring</h2>
+  <p>Classify and trend BP readings · flags Hypertensive Crisis (≥ 180/120)</p>
+</div>
+<div class="card card-purple">
+  <h3>Current Reading</h3>
+  <p class="sub">Enter the latest BP measurement and history</p>
+  <div class="grid3">
+    <div class="field"><label>Systolic (mmHg) *</label><input id="bp-sys" type="number" placeholder="182"></div>
+    <div class="field"><label>Diastolic (mmHg) *</label><input id="bp-dia" type="number" placeholder="122"></div>
+    <div class="field"><label>Recorded At *</label><input id="bp-ts" type="datetime-local"></div>
+  </div>
+  <h3 style="font-size:14px;margin-top:18px">BP History</h3>
+  <p class="sub" style="margin-bottom:10px">Up to 10 prior readings</p>
+  <div id="bp-history"></div>
+  <button class="btn btn-secondary" style="font-size:12px;padding:7px 14px;margin-top:8px" onclick="addBPRow()">+ Add Reading</button>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="bp-btn" onclick="runBP()">❤️ Analyse BP <div class="spinner" id="bp-spin"></div></button>
+    <button class="btn btn-secondary" onclick="document.getElementById('bp-sys').value=182;document.getElementById('bp-dia').value=122;document.getElementById('bp-ts').value=new Date().toISOString().slice(0,16)">Load Sample</button>
+  </div>
+  <div class="result-box" id="bp-result"></div>
+</div>`;
+}
+function addBPRow(){
+  const c=document.getElementById('bp-history');if(!c)return;
+  const i=c.children.length;
+  const row=document.createElement('div');row.className='grid3';row.style.marginBottom='10px';
+  row.innerHTML=`<div class="field"><label>Systolic ${i+1}</label><input class="bph-sys" type="number" placeholder="145"></div>
+    <div class="field"><label>Diastolic ${i+1}</label><input class="bph-dia" type="number" placeholder="95"></div>
+    <div class="field"><label>Timestamp ${i+1}</label><input class="bph-ts" type="datetime-local"></div>`;
+  c.appendChild(row);
+}
+async function runBP(){
+  const current={systolic:+document.getElementById('bp-sys').value,diastolic:+document.getElementById('bp-dia').value,
+    timestamp:new Date(document.getElementById('bp-ts').value).toISOString()};
+  const history=[];
+  document.querySelectorAll('.bph-sys').forEach((_,i)=>{
+    const s=document.querySelectorAll('.bph-sys')[i],d=document.querySelectorAll('.bph-dia')[i],t=document.querySelectorAll('.bph-ts')[i];
+    if(s.value&&d.value&&t.value) history.push({systolic:+s.value,diastolic:+d.value,timestamp:new Date(t.value).toISOString()});
+  });
+  addFeed('var(--accent)','BP analysis started');
+  await callAPI('monitor/blood-pressure',{current,history},'bp-btn','bp-spin','bp-result',json=>{
+    if(json.success&&json.data?.requires_immediate_attention){
+      toast('emergency','⚠️ Hypertensive Crisis','IMMEDIATE medical attention required!',0);
+      addFeed('var(--danger)','HYPERTENSIVE CRISIS detected!');
+    } else if(json.success){
+      addFeed('var(--ok)',`BP classified: ${json.data?.classification}`);
+      toast('ok','BP Analysis Complete',json.data?.classification);
+    }
+  });
+}
+
+function pageTrends(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">AI Agents / <span>Health Trends</span></div>
+  <h2>📈 Health Risk Trend Analysis</h2>
+  <p>30-reading longitudinal trends for glucose, cholesterol, BMI</p>
+</div>
+<div class="card card-purple">
+  <h3>Trend Metrics</h3>
+  <p class="sub">Enter latest values, 30-reading averages, and % change</p>
+  <h4 style="font-size:12px;color:var(--accent);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">🩸 Blood Glucose</h4>
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="field"><label>Latest (mg/dL)</label><input id="t-gl" type="number" step="0.1" placeholder="132"></div>
+    <div class="field"><label>30-Reading Avg</label><input id="t-ga" type="number" step="0.1" placeholder="118"></div>
+    <div class="field"><label>Change %</label><input id="t-gp" type="number" step="0.1" placeholder="11.9"></div>
+  </div>
+  <h4 style="font-size:12px;color:var(--accent2);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">🫀 Cholesterol</h4>
+  <div class="grid3" style="margin-bottom:16px">
+    <div class="field"><label>Latest (mg/dL)</label><input id="t-cl" type="number" step="0.1" placeholder="215"></div>
+    <div class="field"><label>30-Reading Avg</label><input id="t-ca" type="number" step="0.1" placeholder="205"></div>
+    <div class="field"><label>Change %</label><input id="t-cp" type="number" step="0.1" placeholder="4.9"></div>
+  </div>
+  <h4 style="font-size:12px;color:var(--ok);margin-bottom:10px;text-transform:uppercase;letter-spacing:.5px">⚖️ BMI</h4>
+  <div class="grid3">
+    <div class="field"><label>Latest</label><input id="t-bl" type="number" step="0.01" placeholder="30.5"></div>
+    <div class="field"><label>30-Reading Avg</label><input id="t-ba" type="number" step="0.01" placeholder="29.8"></div>
+    <div class="field"><label>Change %</label><input id="t-bp" type="number" step="0.1" placeholder="2.3"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="t-btn" onclick="runTrends()">📈 Analyse Trends <div class="spinner" id="t-spin"></div></button>
+    <button class="btn btn-secondary" onclick="['gl','ga','gp','cl','ca','cp','bl','ba','bp'].forEach((id,i)=>document.getElementById('t-'+id).value=[132,118,11.9,215,205,4.9,30.5,29.8,2.3][i])">Load Sample</button>
+  </div>
+  <div class="result-box" id="t-result"></div>
+</div>`;
+}
+async function runTrends(){
+  const payload={glucose_latest:+document.getElementById('t-gl').value,glucose_avg:+document.getElementById('t-ga').value,
+    glucose_change_pct:+document.getElementById('t-gp').value,cholesterol_latest:+document.getElementById('t-cl').value,
+    cholesterol_avg:+document.getElementById('t-ca').value,cholesterol_change_pct:+document.getElementById('t-cp').value,
+    bmi_latest:+document.getElementById('t-bl').value,bmi_avg:+document.getElementById('t-ba').value,bmi_change_pct:+document.getElementById('t-bp').value};
+  addFeed('var(--accent2)','Trend analysis started');
+  await callAPI('analyse/trends',payload,'t-btn','t-spin','t-result',json=>{
+    if(json.success){addFeed('var(--ok)',`Overall: ${json.data?.overall_trend}`);toast('info','Trends Complete',`Overall: ${json.data?.overall_trend}`);}
+  });
+}
+
+function pageLifestyle(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">AI Agents / <span>Lifestyle Advisory</span></div>
+  <h2>🌿 Lifestyle Advisory</h2>
+  <p>Personalised evidence-based plan — WHO / AHA / NHS guidelines</p>
+</div>
+<div class="card card-purple">
+  <h3>Patient Lifestyle Profile</h3>
+  <p class="sub">Generate a personalised wellness plan</p>
+  <div class="grid2">
+    <div class="field"><label>Age</label><input id="l-age" type="number" placeholder="62"></div>
+    <div class="field"><label>Gender</label><select id="l-gender"><option>Female</option><option>Male</option><option>Non-binary</option></select></div>
+    <div class="field"><label>BMI</label><input id="l-bmi" type="number" step="0.1" placeholder="29.4"></div>
+    <div class="field"><label>Smoking Status</label>
+      <select id="l-smoke"><option>Non-smoker</option><option>Former smoker</option><option>Current smoker</option></select></div>
+    <div class="field"><label>Activity Level</label>
+      <select id="l-activity"><option>Sedentary</option><option>Light</option><option>Moderate</option><option>Active</option></select></div>
+    <div class="field"><label>Risk Level</label>
+      <select id="l-risk"><option value="">Unknown</option><option>Low</option><option>Moderate</option><option>High</option><option>Critical</option></select></div>
+    <div class="field"><label>Systolic BP</label><input id="l-sys" type="number" placeholder="158"></div>
+    <div class="field"><label>Diastolic BP</label><input id="l-dia" type="number" placeholder="95"></div>
+    <div class="field"><label>Blood Glucose (mg/dL)</label><input id="l-gluc" type="number" step="0.1" placeholder="138"></div>
+    <div class="field"><label>Cholesterol (mg/dL)</label><input id="l-chol" type="number" step="0.1" placeholder="224"></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="l-btn" onclick="runLifestyle()">🌿 Generate Plan <div class="spinner" id="l-spin"></div></button>
+    <button class="btn btn-secondary" onclick="const f=(id,v)=>{const e=document.getElementById(id);if(e)e.value=v;};f('l-age',62);f('l-bmi',29.4);f('l-sys',158);f('l-dia',95);f('l-gluc',138);f('l-chol',224);f('l-risk','High')">Load Sample</button>
+  </div>
+  <div class="result-box" id="l-result"></div>
+</div>`;
+}
+async function runLifestyle(){
+  const payload={age:+document.getElementById('l-age').value,gender:document.getElementById('l-gender').value,
+    bmi:+document.getElementById('l-bmi').value,smoking_status:document.getElementById('l-smoke').value,
+    activity_level:document.getElementById('l-activity').value,risk_level:document.getElementById('l-risk').value||undefined,
+    bp_systolic:+document.getElementById('l-sys').value,bp_diastolic:+document.getElementById('l-dia').value,
+    blood_glucose:+document.getElementById('l-gluc').value,cholesterol:+document.getElementById('l-chol').value};
+  addFeed('var(--ok)','Lifestyle advisory started');
+  await callAPI('advise/lifestyle',payload,'l-btn','l-spin','l-result',json=>{
+    if(json.success){addFeed('var(--ok)',`Priority: ${(json.data?.priority_action||'').substring(0,45)}…`);toast('ok','Plan Ready','See results panel');}
+  });
+}
+
+function pageReport(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">Tools / <span>Hospital Report</span></div>
+  <h2>📄 Hospital Report Summary</h2>
+  <p>Extract stroke-relevant data from hospital discharge reports (first 3 000 chars)</p>
+</div>
+<div class="card card-purple">
+  <h3>Report Upload</h3>
+  <p class="sub">Paste the hospital report text below</p>
+  <div class="grid2">
+    <div class="field span2"><label>Hospital Name *</label><input id="r-hosp" placeholder="e.g. City General Hospital"></div>
+    <div class="field span2"><label>Report Text *</label><textarea id="r-text" style="min-height:160px" placeholder="Paste the full hospital report text here…"></textarea></div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="r-btn" onclick="runReport()">📄 Extract &amp; Summarise <div class="spinner" id="r-spin"></div></button>
+    <button class="btn btn-secondary" onclick="document.getElementById('r-hosp').value='City General Hospital';document.getElementById('r-text').value='Patient admitted 2024-11-10. Diagnosed with hypertension (BP 165/105). History of TIA. Prescribed amlodipine 5mg. Fasting glucose 142 mg/dL. Total cholesterol 230 mg/dL. Advised lifestyle changes.'">Load Sample</button>
+  </div>
+  <div class="result-box" id="r-result"></div>
+</div>`;
+}
+async function runReport(){
+  const payload={hospital_name:document.getElementById('r-hosp').value.trim(),report_text:document.getElementById('r-text').value.trim()};
+  addFeed('var(--accent)','Report summarisation started');
+  await callAPI('report/summarise',payload,'r-btn','r-spin','r-result',json=>{
+    if(json.success){addFeed('var(--ok)',`Report from ${payload.hospital_name} summarised`);toast('ok','Report Summarised',`${json.data?.key_diagnoses?.length||0} diagnoses extracted`);}
+  });
+}
+
+/* ─── Navigation ─────────────────────────────────────────────────────────── */
+const builders={dashboard:pageDashboard,patients:pagePatients,stroke:pageStroke,bp:pageBP,
+  trends:pageTrends,lifestyle:pageLifestyle,report:pageReport};
+
+function showPage(name){
+  const b=builders[name];if(!b)return;
+  document.getElementById('main-content').innerHTML=b();
+  document.querySelectorAll('nav li a').forEach(a=>a.classList.toggle('active',a.dataset.page===name));
+  if(name==='bp'){const el=document.getElementById('bp-ts');if(el)el.value=new Date().toISOString().slice(0,16);addBPRow();addBPRow();}
+  renderFeed();
+}
+document.querySelectorAll('nav li a').forEach(a=>{
+  a.addEventListener('click',e=>{e.preventDefault();showPage(a.dataset.page);});
+});
+showPage('dashboard');
+</script>
+</body>
+</html>

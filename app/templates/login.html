@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sign In — Stroke Risk Monitor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;
+  --border:#1e2d45;--accent:#3b82f6;--accent2:#8b5cf6;
+  --danger:#ef4444;--ok:#10b981;--text:#f1f5f9;--muted:#94a3b8;
+}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(59,130,246,.04) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,.04) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+.blob{position:fixed;border-radius:50%;filter:blur(80px);opacity:.18;pointer-events:none}
+.blob1{width:500px;height:500px;background:var(--accent);top:-150px;left:-150px}
+.blob2{width:400px;height:400px;background:var(--accent2);bottom:-100px;right:-100px}
+
+.wrap{position:relative;z-index:1;width:100%;max-width:440px;padding:20px}
+
+/* Brand */
+.brand{text-align:center;margin-bottom:28px}
+.brand-icon{width:54px;height:54px;border-radius:14px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;
+  font-size:26px;margin:0 auto 12px;box-shadow:0 0 28px rgba(59,130,246,.4);}
+.brand h1{font-size:22px;font-weight:800;margin-bottom:3px}
+.brand h1 span{color:var(--accent)}
+.brand p{font-size:13px;color:var(--muted)}
+
+/* Role tabs */
+.role-tabs{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.role-btn{background:var(--surface2);border:2px solid var(--border);
+  border-radius:12px;padding:14px 10px;text-align:center;cursor:pointer;transition:all .2s;}
+.role-btn:hover{border-color:var(--accent);background:rgba(59,130,246,.08)}
+.role-btn.active{border-color:var(--accent);background:rgba(59,130,246,.12);box-shadow:0 0 14px rgba(59,130,246,.2)}
+.role-btn.active.pro{border-color:var(--accent2);background:rgba(139,92,246,.12);box-shadow:0 0 14px rgba(139,92,246,.2)}
+.role-icon{font-size:26px;margin-bottom:5px}
+.role-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.role-desc{font-size:11px;color:var(--muted);margin-top:2px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:16px;
+  padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+
+/* Mode switch (tabs inside card) */
+.mode-row{display:flex;border-bottom:1px solid var(--border);margin-bottom:20px}
+.mode-tab{flex:1;text-align:center;padding:9px;font-size:13px;font-weight:700;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  margin-bottom:-1px;transition:all .15s;}
+.mode-tab:hover{color:var(--text)}
+.mode-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.mode-tab.active.pro-tab{color:var(--accent2);border-bottom-color:var(--accent2)}
+
+/* Form elements */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+input,select{background:var(--surface2);border:1px solid var(--border);
+  border-radius:8px;padding:10px 13px;font-size:13px;color:var(--text);
+  font-family:inherit;width:100%;transition:border .15s,box-shadow .15s;}
+input:focus,select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(59,130,246,.15)}
+input::placeholder{color:#475569}
+select option{background:var(--surface2)}
+
+/* Password field with toggle */
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:40px}
+.pw-toggle{position:absolute;right:12px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px;padding:0}
+.pw-toggle:hover{color:var(--text)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* Submit button */
+.btn-submit{width:100%;padding:12px;border:none;border-radius:10px;
+  font-size:14px;font-weight:700;cursor:pointer;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 18px rgba(59,130,246,.35);
+  transition:all .2s;letter-spacing:.3px;margin-top:4px;
+  display:flex;align-items:center;justify-content:center;gap:8px;}
+.btn-submit:hover{transform:translateY(-1px);box-shadow:0 8px 26px rgba(59,130,246,.5)}
+.btn-submit:disabled{opacity:.55;transform:none;cursor:not-allowed}
+.btn-submit.pro-mode{background:linear-gradient(135deg,var(--accent2),#ec4899);
+  box-shadow:0 4px 18px rgba(139,92,246,.35)}
+.btn-submit.pro-mode:hover{box-shadow:0 8px 26px rgba(139,92,246,.5)}
+.spinner-sm{width:14px;height:14px;border:2px solid rgba(255,255,255,.25);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+.spinner-sm.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Alert boxes */
+.alert{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:14px;display:none}
+.alert.show{display:block}
+.alert-err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#fca5a5}
+.alert-ok{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:#6ee7b7}
+.alert-warn{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);color:#fcd34d}
+
+/* Demo hint */
+.demo-box{background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.2);
+  border-radius:8px;padding:10px 14px;font-size:11px;color:var(--muted);
+  margin-bottom:16px;line-height:1.7;}
+.demo-box strong{color:var(--text)}
+.demo-box a{color:var(--accent);cursor:pointer;text-decoration:underline}
+
+/* Divider */
+.divider{display:flex;align-items:center;gap:10px;margin:16px 0;color:var(--muted);font-size:12px}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+
+.hint{font-size:12px;color:var(--muted);text-align:center;margin-top:14px}
+.hint a{color:var(--accent);cursor:pointer;font-weight:600;text-decoration:none}
+.hint a:hover{text-decoration:underline}
+
+/* Password strength */
+.strength-bar{height:3px;border-radius:2px;margin-top:5px;transition:all .3s;background:var(--border)}
+.strength-label{font-size:10px;color:var(--muted);margin-top:3px}
+
+/* Terms */
+.terms{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.6}
+.terms a{color:var(--accent)}
+
+/* Account type badge in signup */
+.account-banner{border-radius:8px;padding:10px 14px;font-size:12px;margin-bottom:16px;
+  display:flex;align-items:center;gap:8px}
+.ab-patient{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.2);color:var(--accent)}
+.ab-pro{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.2);color:var(--accent2)}
+</style>
+</head>
+<body>
+<div class="blob blob1"></div>
+<div class="blob blob2"></div>
+
+<div class="wrap">
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-icon">🧠</div>
+    <h1>Stroke Risk <span>Monitor</span></h1>
+    <p>IBM Granite AI · watsonx.ai</p>
+  </div>
+
+  <!-- Role selector -->
+  <div class="role-tabs">
+    <div class="role-btn active" id="tab-patient" onclick="selectRole('patient')">
+      <div class="role-icon">🧑‍⚕️</div>
+      <div class="role-label">Patient</div>
+      <div class="role-desc">Track your health</div>
+    </div>
+    <div class="role-btn" id="tab-pro" onclick="selectRole('professional')">
+      <div class="role-icon">👨‍⚕️</div>
+      <div class="role-label">Professional</div>
+      <div class="role-desc">Clinical dashboard</div>
+    </div>
+  </div>
+
+  <!-- Card with Sign In / Create Account tabs -->
+  <div class="card">
+    <div class="mode-row">
+      <div class="mode-tab active" id="mt-signin" onclick="switchMode('signin')">Sign In</div>
+      <div class="mode-tab" id="mt-signup" onclick="switchMode('signup')">Create Account</div>
+    </div>
+
+    <!-- ── SIGN IN PANEL ── -->
+    <div id="panel-signin">
+      <div class="demo-box" id="demo-box">
+        <strong>Demo credentials</strong><br>
+        Patient: <a onclick="fillDemo('patient')">patient@demo.com</a> / patient123<br>
+        Professional: <a onclick="fillDemo('professional')">doctor@demo.com</a> / doctor123
+      </div>
+      <div class="alert alert-err" id="login-err"></div>
+      <div class="alert alert-ok" id="login-ok"></div>
+
+      <div class="field">
+        <label>Email Address</label>
+        <input id="li-email" type="email" placeholder="you@example.com" autocomplete="username"/>
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <div class="pw-wrap">
+          <input id="li-password" type="password" placeholder="••••••••"
+                 autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()"/>
+          <button class="pw-toggle" type="button" onclick="togglePw('li-password',this)">👁</button>
+        </div>
+      </div>
+
+      <div style="text-align:right;margin-bottom:14px">
+        <a style="font-size:12px;color:var(--accent);cursor:pointer" onclick="showForgot()">Forgot password?</a>
+      </div>
+
+      <button class="btn-submit" id="li-btn" onclick="doLogin()">
+        <span id="li-btn-txt">Sign In as Patient</span>
+        <div class="spinner-sm" id="li-spin"></div>
+      </button>
+
+      <div class="hint">Don't have an account? <a onclick="switchMode('signup')">Create one</a></div>
+    </div>
+
+    <!-- ── CREATE ACCOUNT PANEL ── -->
+    <div id="panel-signup" style="display:none">
+      <div class="account-banner ab-patient" id="acc-banner">
+        🧑‍⚕️ Creating a <strong>Patient</strong> account
+      </div>
+      <div class="alert alert-err" id="reg-err"></div>
+      <div class="alert alert-ok" id="reg-ok"></div>
+
+      <div class="row2">
+        <div class="field">
+          <label>First Name *</label>
+          <input id="reg-fname" type="text" placeholder="Jane"/>
+        </div>
+        <div class="field">
+          <label>Last Name *</label>
+          <input id="reg-lname" type="text" placeholder="Smith"/>
+        </div>
+      </div>
+      <div class="field">
+        <label>Email Address *</label>
+        <input id="reg-email" type="email" placeholder="jane@example.com" autocomplete="username"/>
+      </div>
+
+      <!-- Professional-only field -->
+      <div class="field" id="reg-org-field" style="display:none">
+        <label>Hospital / Organisation *</label>
+        <input id="reg-org" type="text" placeholder="e.g. City General Hospital"/>
+      </div>
+      <div class="field" id="reg-lic-field" style="display:none">
+        <label>Medical Licence Number *</label>
+        <input id="reg-lic" type="text" placeholder="e.g. MCI-2024-00123"/>
+      </div>
+
+      <!-- Patient-only field -->
+      <div class="field" id="reg-dob-field">
+        <label>Date of Birth</label>
+        <input id="reg-dob" type="date"/>
+      </div>
+
+      <div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:8px;padding:14px;margin-bottom:2px">
+        <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">
+          👥 Emergency Neighbor Contacts
+        </div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="field" style="margin-bottom:0">
+              <label>Neighbor 1 Name</label>
+              <input id="reg-nb1-name" type="text" placeholder="e.g. Ravi Kumar"/>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Neighbor 1 Phone</label>
+              <input id="reg-nb1-phone" type="tel" placeholder="+91-98765-11111"/>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div class="field" style="margin-bottom:0">
+              <label>Neighbor 2 Name</label>
+              <input id="reg-nb2-name" type="text" placeholder="e.g. Priya Sharma"/>
+            </div>
+            <div class="field" style="margin-bottom:0">
+              <label>Neighbor 2 Phone</label>
+              <input id="reg-nb2-phone" type="tel" placeholder="+91-98765-22222"/>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--muted);margin-top:8px">These contacts will be alerted in case of an SOS emergency.</div>
+      </div>
+
+      <div class="field">
+        <label>Password *</label>
+        <div class="pw-wrap">
+          <input id="reg-pw" type="password" placeholder="Minimum 8 characters"
+                 oninput="checkStrength(this.value)" autocomplete="new-password"/>
+          <button class="pw-toggle" type="button" onclick="togglePw('reg-pw',this)">👁</button>
+        </div>
+        <div class="strength-bar" id="str-bar"></div>
+        <div class="strength-label" id="str-lbl"></div>
+      </div>
+      <div class="field">
+        <label>Confirm Password *</label>
+        <div class="pw-wrap">
+          <input id="reg-pw2" type="password" placeholder="Repeat password" autocomplete="new-password"
+                 onkeydown="if(event.key==='Enter') doRegister()"/>
+          <button class="pw-toggle" type="button" onclick="togglePw('reg-pw2',this)">👁</button>
+        </div>
+      </div>
+
+      <p class="terms">By creating an account you agree to our <a href="#">Terms of Service</a> and
+        acknowledge that this is a decision-support tool only — not a diagnostic system.</p>
+
+      <button class="btn-submit" id="reg-btn" onclick="doRegister()" style="margin-top:14px">
+        <span id="reg-btn-txt">Create Patient Account</span>
+        <div class="spinner-sm" id="reg-spin"></div>
+      </button>
+
+      <div class="hint">Already have an account? <a onclick="switchMode('signin')">Sign in</a></div>
+    </div>
+
+    <!-- ── FORGOT PASSWORD PANEL ── -->
+    <div id="panel-forgot" style="display:none">
+      <div class="alert alert-ok" id="forgot-ok"></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Enter your registered email address and we'll send you a password reset link.</p>
+      <div class="field">
+        <label>Email Address</label>
+        <input id="fp-email" type="email" placeholder="you@example.com"/>
+      </div>
+      <button class="btn-submit" onclick="doForgot()">Send Reset Link</button>
+      <div class="hint" style="margin-top:12px"><a onclick="switchMode('signin')">Back to Sign In</a></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─── State ──────────────────────────────────────────────────────────────── */
+let _role = 'patient';
+let _mode = 'signin'; // 'signin' | 'signup' | 'forgot'
+
+/* ─── Built-in accounts (demo + all user-created accounts stored in localStorage) */
+const DEMO = {
+  patient:      { email:'patient@demo.com',  password:'patient123',  name:'Demo Patient',    role:'patient' },
+  professional: { email:'doctor@demo.com',   password:'doctor123',   name:'Dr. Demo',         role:'professional' },
+};
+
+function getAccounts(){
+  try{ return JSON.parse(localStorage.getItem('srm_accounts')||'[]'); } catch{ return []; }
+}
+function saveAccounts(list){
+  localStorage.setItem('srm_accounts', JSON.stringify(list));
+}
+
+/* ─── Role selector ──────────────────────────────────────────────────────── */
+function selectRole(role){
+  _role = role;
+  const isPro = role === 'professional';
+
+  // Tab highlight
+  const pt = document.getElementById('tab-patient');
+  const pp = document.getElementById('tab-pro');
+  pt.classList.toggle('active', !isPro);
+  pp.classList.toggle('active', isPro);
+  if(isPro) pp.classList.add('pro'); else pp.classList.remove('pro');
+
+  // Sign-in button
+  const liBtn = document.getElementById('li-btn');
+  const liTxt = document.getElementById('li-btn-txt');
+  liTxt.textContent = isPro ? 'Sign In as Professional' : 'Sign In as Patient';
+  liBtn.className   = 'btn-submit' + (isPro ? ' pro-mode' : '');
+
+  // Sign-up button + banner
+  document.getElementById('reg-btn-txt').textContent = isPro ? 'Create Professional Account' : 'Create Patient Account';
+  document.getElementById('reg-btn').className       = 'btn-submit' + (isPro ? ' pro-mode' : '');
+  document.getElementById('acc-banner').className    = 'account-banner ' + (isPro ? 'ab-pro' : 'ab-patient');
+  document.getElementById('acc-banner').innerHTML    = isPro
+    ? '👨‍⚕️ Creating a <strong>Professional</strong> account'
+    : '🧑‍⚕️ Creating a <strong>Patient</strong> account';
+
+  // Professional-only fields
+  document.getElementById('reg-org-field').style.display = isPro ? 'flex' : 'none';
+  document.getElementById('reg-lic-field').style.display = isPro ? 'flex' : 'none';
+  document.getElementById('reg-dob-field').style.display = isPro ? 'none' : 'flex';
+
+  // Mode tab colors
+  const mtSign = document.getElementById('mt-signin');
+  const mtReg  = document.getElementById('mt-signup');
+  if(isPro){
+    mtSign.classList.add('pro-tab'); mtReg.classList.add('pro-tab');
+  } else {
+    mtSign.classList.remove('pro-tab'); mtReg.classList.remove('pro-tab');
+  }
+
+  clearAlerts();
+}
+
+/* ─── Mode switch ────────────────────────────────────────────────────────── */
+function switchMode(mode){
+  _mode = mode;
+  document.getElementById('panel-signin').style.display  = mode==='signin'  ? 'block' : 'none';
+  document.getElementById('panel-signup').style.display  = mode==='signup'  ? 'block' : 'none';
+  document.getElementById('panel-forgot').style.display  = mode==='forgot'  ? 'block' : 'none';
+  document.getElementById('mt-signin').classList.toggle('active', mode==='signin');
+  document.getElementById('mt-signup').classList.toggle('active', mode==='signup');
+  clearAlerts();
+}
+function showForgot(){ switchMode('forgot'); }
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
+function clearAlerts(){
+  ['login-err','login-ok','reg-err','reg-ok','forgot-ok'].forEach(id=>{
+    const el=document.getElementById(id); if(el){el.className='alert';el.textContent='';}
+  });
+}
+function showAlert(id, type, msg){
+  const el=document.getElementById(id); if(!el) return;
+  el.className=`alert alert-${type} show`; el.textContent=msg;
+}
+function togglePw(inputId, btn){
+  const inp=document.getElementById(inputId);
+  if(!inp) return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+}
+function fillDemo(role){
+  selectRole(role);
+  switchMode('signin');
+  const creds = { patient:{e:'patient@demo.com',p:'patient123'}, professional:{e:'doctor@demo.com',p:'doctor123'} };
+  document.getElementById('li-email').value    = creds[role].e;
+  document.getElementById('li-password').value = creds[role].p;
+}
+
+/* ─── Password strength ──────────────────────────────────────────────────── */
+function checkStrength(pw){
+  const bar=document.getElementById('str-bar'); const lbl=document.getElementById('str-lbl');
+  if(!pw){ bar.style.width='0'; bar.style.background='var(--border)'; lbl.textContent=''; return; }
+  let score=0;
+  if(pw.length>=8) score++;
+  if(pw.length>=12) score++;
+  if(/[A-Z]/.test(pw)) score++;
+  if(/[0-9]/.test(pw)) score++;
+  if(/[^A-Za-z0-9]/.test(pw)) score++;
+  const levels=[
+    {w:'20%',c:'#ef4444',t:'Very weak'},
+    {w:'40%',c:'#f97316',t:'Weak'},
+    {w:'60%',c:'#f59e0b',t:'Fair'},
+    {w:'80%',c:'#84cc16',t:'Strong'},
+    {w:'100%',c:'#10b981',t:'Very strong'},
+  ];
+  const l=levels[Math.min(score,4)];
+  bar.style.width=l.w; bar.style.background=l.c; lbl.textContent=l.t; lbl.style.color=l.c;
+}
+
+/* ─── SIGN IN ────────────────────────────────────────────────────────────── */
+function doLogin(){
+  clearAlerts();
+  const email = document.getElementById('li-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('li-password').value;
+  if(!email||!pw){ showAlert('login-err','err','Please fill in all fields.'); return; }
+
+  const btn=document.getElementById('li-btn'); const spin=document.getElementById('li-spin');
+  btn.disabled=true; spin.classList.add('show');
+
+  setTimeout(()=>{
+    // Check demo accounts first
+    const demo = Object.values(DEMO).find(d=>d.email===email&&d.role===_role);
+    if(demo && demo.password===pw){
+      sessionStorage.setItem('srm_role', _role);
+      sessionStorage.setItem('srm_user', email);
+      sessionStorage.setItem('srm_name', demo.name);
+      showAlert('login-ok','ok','✓ Signed in! Redirecting…');
+      setTimeout(()=>window.location.href=_role==='professional'?'/professional':'/patient', 700);
+      return;
+    }
+    // Check user-created accounts
+    const accounts = getAccounts();
+    const account  = accounts.find(a=>a.email===email&&a.role===_role);
+    if(account && account.password===pw){
+      sessionStorage.setItem('srm_role', _role);
+      sessionStorage.setItem('srm_user', email);
+      sessionStorage.setItem('srm_name', account.name);
+      showAlert('login-ok','ok','✓ Signed in! Redirecting…');
+      setTimeout(()=>window.location.href=_role==='professional'?'/professional':'/patient', 700);
+      return;
+    }
+    btn.disabled=false; spin.classList.remove('show');
+    showAlert('login-err','err','❌ Invalid email or password. Please try again.');
+    document.getElementById('li-password').value='';
+    document.getElementById('li-password').focus();
+  }, 600);
+}
+
+/* ─── CREATE ACCOUNT ─────────────────────────────────────────────────────── */
+function doRegister(){
+  clearAlerts();
+  const fname = document.getElementById('reg-fname').value.trim();
+  const lname = document.getElementById('reg-lname').value.trim();
+  const email = document.getElementById('reg-email').value.trim().toLowerCase();
+  const pw    = document.getElementById('reg-pw').value;
+  const pw2   = document.getElementById('reg-pw2').value;
+  const org   = document.getElementById('reg-org').value.trim();
+  const lic   = document.getElementById('reg-lic').value.trim();
+
+  // Validation
+  if(!fname||!lname||!email||!pw||!pw2){
+    showAlert('reg-err','err','❌ Please fill in all required fields.'); return;
+  }
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+    showAlert('reg-err','err','❌ Please enter a valid email address.'); return;
+  }
+  if(pw.length<8){
+    showAlert('reg-err','err','❌ Password must be at least 8 characters.'); return;
+  }
+  if(pw!==pw2){
+    showAlert('reg-err','err','❌ Passwords do not match.'); return;
+  }
+  if(_role==='professional'&&(!org||!lic)){
+    showAlert('reg-err','err','❌ Hospital name and licence number are required for professionals.'); return;
+  }
+
+  // Block demo email re-registration
+  if(email==='patient@demo.com'||email==='doctor@demo.com'){
+    showAlert('reg-err','err','❌ This email is reserved for demo use. Please use a different email.'); return;
+  }
+
+  // Check for duplicate email
+  const accounts = getAccounts();
+  if(accounts.find(a=>a.email===email&&a.role===_role)){
+    showAlert('reg-err','err','❌ An account with this email already exists. Try signing in.'); return;
+  }
+
+  const btn=document.getElementById('reg-btn'); const spin=document.getElementById('reg-spin');
+  btn.disabled=true; spin.classList.add('show');
+
+  setTimeout(()=>{
+    // Collect neighbor contacts (patient only)
+    const neighbors = _role==='patient' ? [
+      { name: document.getElementById('reg-nb1-name').value.trim(), phone: document.getElementById('reg-nb1-phone').value.trim() },
+      { name: document.getElementById('reg-nb2-name').value.trim(), phone: document.getElementById('reg-nb2-phone').value.trim() },
+    ].filter(n=>n.name||n.phone) : [];
+
+    const newAccount = {
+      email, password:pw, role:_role,
+      name: _role==='professional' ? `Dr. ${fname} ${lname}` : `${fname} ${lname}`,
+      firstName:fname, lastName:lname,
+      ..._role==='professional' ? {org, licence:lic} : {dob:document.getElementById('reg-dob').value, neighbors},
+      createdAt: new Date().toISOString(),
+    };
+    accounts.push(newAccount);
+    saveAccounts(accounts);
+
+    btn.disabled=false; spin.classList.remove('show');
+    showAlert('reg-ok','ok',`✅ Account created for ${newAccount.name}! You can now sign in.`);
+
+    // Auto-fill sign-in and switch
+    setTimeout(()=>{
+      document.getElementById('li-email').value    = email;
+      document.getElementById('li-password').value = pw;
+      switchMode('signin');
+      showAlert('login-ok','ok','Account created — click Sign In to continue.');
+    }, 1200);
+  }, 700);
+}
+
+/* ─── FORGOT PASSWORD ────────────────────────────────────────────────────── */
+function doForgot(){
+  const email=document.getElementById('fp-email').value.trim().toLowerCase();
+  if(!email){ return; }
+  // Simulate
+  showAlert('forgot-ok','ok',`✉️ If an account exists for ${email}, a reset link has been sent.`);
+}
+
+/* ─── Init ───────────────────────────────────────────────────────────────── */
+selectRole('patient');
+</script>
+</body>
+</html>

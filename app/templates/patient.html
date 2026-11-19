@@ -1,0 +1,1442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>My Health Dashboard — Stroke Risk Monitor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e1a;--surface:#111827;--surface2:#1a2235;
+  --border:#1e2d45;--accent:#3b82f6;--accent2:#8b5cf6;
+  --danger:#ef4444;--warn:#f59e0b;--ok:#10b981;
+  --text:#f1f5f9;--muted:#94a3b8;
+  --glow-blue:0 0 20px rgba(59,130,246,.3);
+  --glow-red:0 0 25px rgba(239,68,68,.5);
+}
+html{scroll-behavior:smooth}
+body{font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+  background:var(--bg);color:var(--text);font-size:14px;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;
+  background-image:linear-gradient(rgba(59,130,246,.03) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(59,130,246,.03) 1px,transparent 1px);
+  background-size:40px 40px;pointer-events:none;}
+
+/* ── Header ── */
+header{position:sticky;top:0;z-index:200;background:rgba(10,14,26,.88);
+  backdrop-filter:blur(16px);border-bottom:1px solid var(--border);
+  padding:0 24px;display:flex;align-items:center;gap:14px;height:58px;}
+.logo{display:flex;align-items:center;gap:10px}
+.logo-icon{width:34px;height:34px;border-radius:10px;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:17px;}
+.logo h1{font-size:15px;font-weight:700}
+.logo h1 span{color:var(--accent)}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent2));
+  display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;cursor:pointer}
+.hdr-name{font-size:13px;color:var(--muted)}
+.btn-logout{background:none;border:1px solid var(--border);border-radius:6px;
+  padding:5px 12px;font-size:12px;color:var(--muted);cursor:pointer;font-family:inherit;
+  transition:all .15s}
+.btn-logout:hover{border-color:var(--danger);color:var(--danger)}
+
+/* ── Layout ── */
+.wrapper{display:flex;min-height:calc(100vh - 58px)}
+nav{width:210px;flex-shrink:0;background:rgba(17,24,39,.7);backdrop-filter:blur(12px);
+  border-right:1px solid var(--border);padding:16px 0;
+  position:sticky;top:58px;height:calc(100vh - 58px);overflow-y:auto;}
+nav::-webkit-scrollbar{width:4px}
+nav::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+.nav-sec{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);
+  padding:14px 18px 6px;font-weight:600}
+nav ul{list-style:none}
+nav li a{display:flex;align-items:center;gap:10px;padding:9px 18px;
+  color:var(--muted);font-size:13px;border-left:2px solid transparent;
+  transition:all .15s;cursor:pointer;text-decoration:none;}
+nav li a:hover{background:rgba(255,255,255,.04);color:var(--text);border-left-color:var(--border)}
+nav li a.active{background:rgba(59,130,246,.1);color:var(--accent);border-left-color:var(--accent)}
+nav li a.sos-link{color:#fca5a5}
+nav li a.sos-link.active,nav li a.sos-link:hover{background:rgba(239,68,68,.12);
+  color:var(--danger);border-left-color:var(--danger)}
+.nav-badge{margin-left:auto;font-size:9px;font-weight:700;background:var(--danger);
+  color:#fff;border-radius:10px;padding:1px 6px;animation:pb 1.5s infinite}
+@keyframes pb{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
+.nav-icon{font-size:15px;width:20px;text-align:center}
+
+main{flex:1;padding:28px;max-width:1000px}
+
+/* ── Page header ── */
+.pg-hdr{margin-bottom:22px}
+.pg-hdr h2{font-size:21px;font-weight:700;margin-bottom:3px}
+.pg-hdr p{color:var(--muted);font-size:13px}
+.crumb{font-size:11px;color:var(--muted);margin-bottom:6px}
+.crumb span{color:var(--accent)}
+
+/* ── Stat cards ── */
+.stat-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:18px 20px;position:relative;overflow:hidden;transition:transform .2s,box-shadow .2s}
+.stat-card:hover{transform:translateY(-2px);box-shadow:var(--glow-blue)}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;
+  background:linear-gradient(90deg,var(--accent),var(--accent2))}
+.stat-card .sc-icon{font-size:20px;margin-bottom:8px}
+.stat-card .sc-val{font-size:24px;font-weight:800;line-height:1}
+.stat-card .sc-lbl{font-size:11px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.stat-card .sc-sub{font-size:11px;margin-top:5px;font-weight:600}
+
+/* ── Cards ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:24px;margin-bottom:20px;position:relative;overflow:hidden}
+.card-blue::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  border-radius:50%;background:radial-gradient(circle,rgba(59,130,246,.1),transparent 70%);pointer-events:none}
+.card-purple::after{content:'';position:absolute;top:-40px;right:-40px;width:140px;height:140px;
+  border-radius:50%;background:radial-gradient(circle,rgba(139,92,246,.1),transparent 70%);pointer-events:none}
+.card h3{font-size:15px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.card p.sub{color:var(--muted);font-size:12px;margin-bottom:18px}
+
+/* ── SVG Charts ── */
+.chart-wrap{position:relative;width:100%;margin:8px 0 4px}
+.chart-label-row{display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:4px;padding:0 2px}
+.chart-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:600}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.chart-container{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px}
+
+/* ── Wristband ── */
+.wband-status{display:flex;align-items:center;gap:14px;padding:16px;
+  background:var(--surface2);border:1px solid var(--border);border-radius:12px;margin-bottom:16px}
+.wband-icon{font-size:36px}
+.wband-info .wb-name{font-weight:700;font-size:14px}
+.wband-info .wb-status{font-size:12px;margin-top:2px}
+.wb-connected{color:var(--ok)}
+.wb-disconnected{color:var(--muted)}
+.wb-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px}
+.wb-dot-on{background:var(--ok);box-shadow:0 0 6px var(--ok);animation:blink 2s infinite}
+.wb-dot-off{background:var(--muted)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+.wb-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+.wb-metric{background:var(--surface);border:1px solid var(--border);border-radius:8px;
+  padding:12px;text-align:center}
+.wb-metric .wm-val{font-size:20px;font-weight:800}
+.wb-metric .wm-lbl{font-size:10px;color:var(--muted);margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+
+/* ── Btn styles ── */
+.btn-row{margin-top:18px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700;
+  cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:7px;font-family:inherit}
+.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent2));
+  color:#fff;box-shadow:0 4px 15px rgba(59,130,246,.3)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(59,130,246,.45)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent)}
+.btn-danger{background:linear-gradient(135deg,#ef4444,#b91c1c);color:#fff;
+  box-shadow:0 4px 15px rgba(239,68,68,.4)}
+.btn-danger:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(239,68,68,.6)}
+
+/* ── SOS ── */
+.sos-container{text-align:center;padding:24px 0 16px}
+.sos-btn{width:150px;height:150px;border-radius:50%;border:none;cursor:pointer;
+  background:radial-gradient(circle at 35% 35%,#ff6b6b,#b91c1c);
+  color:#fff;font-size:28px;font-weight:900;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;
+  margin:0 auto;animation:sos-idle 2.5s infinite;transition:transform .2s}
+.sos-btn:hover{transform:scale(1.05);animation:sos-active 1s infinite}
+.sos-btn .sos-lbl{font-size:11px;letter-spacing:2px;font-weight:700;opacity:.9}
+@keyframes sos-idle{
+  0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4),0 0 30px rgba(239,68,68,.3)}
+  50%{box-shadow:0 0 0 18px rgba(239,68,68,0),0 0 50px rgba(239,68,68,.5)}
+}
+@keyframes sos-active{
+  0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.8),0 0 40px rgba(239,68,68,.5)}
+  50%{box-shadow:0 0 0 28px rgba(239,68,68,0),0 0 70px rgba(239,68,68,.8)}
+}
+.sos-msg{display:none;margin-top:14px;background:rgba(239,68,68,.12);
+  border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:14px 16px;font-size:13px;color:#fca5a5}
+.sos-msg.show{display:block;animation:flash 1s infinite}
+@keyframes flash{0%,100%{opacity:1}50%{opacity:.7}}
+
+.nb-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:12px 0}
+.nb-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px;transition:all .3s}
+.nb-card.notified{border-color:var(--ok);background:rgba(16,185,129,.08);box-shadow:0 0 12px rgba(16,185,129,.2)}
+.nb-name{font-weight:700;font-size:13px;margin-bottom:2px}
+.nb-phone{font-size:11px;color:var(--muted)}
+.nb-addr{font-size:11px;color:var(--muted);margin-top:2px}
+.nb-st{margin-top:8px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:4px;display:inline-block}
+.nb-idle{background:rgba(148,163,184,.1);color:var(--muted)}
+.nb-sent{background:rgba(16,185,129,.15);color:var(--ok)}
+
+/* ── FAST ── */
+.fast-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:10px 0 18px}
+.fast-card{background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+  padding:14px;text-align:center;transition:all .3s}
+.fast-card .fl{font-size:30px;font-weight:900;line-height:1;
+  background:linear-gradient(135deg,var(--accent),var(--accent2));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.fast-card .fw{font-size:10px;color:var(--muted);margin-top:3px;font-weight:600;text-transform:uppercase;letter-spacing:.5px}
+.fast-card.flagged{background:rgba(239,68,68,.1);border-color:var(--danger);box-shadow:var(--glow-red)}
+.fast-card.flagged .fl{background:linear-gradient(135deg,#ef4444,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* ── Toast ── */
+#tc{position:fixed;top:70px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  padding:12px 16px;min-width:260px;max-width:360px;
+  box-shadow:0 8px 32px rgba(0,0,0,.4);display:flex;align-items:flex-start;gap:10px;
+  animation:tin .3s ease}
+.toast.removing{animation:tout .3s ease forwards}
+@keyframes tin{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+@keyframes tout{to{transform:translateX(110%);opacity:0}}
+.t-emergency{border-color:var(--danger);background:rgba(239,68,68,.12)}
+.t-ok{border-color:var(--ok);background:rgba(16,185,129,.1)}
+.t-warn{border-color:var(--warn);background:rgba(245,158,11,.1)}
+.t-icon{font-size:17px;flex-shrink:0;margin-top:1px}
+.t-title{font-weight:700;font-size:13px;margin-bottom:2px}
+.t-msg{font-size:12px;color:var(--muted)}
+.t-close{margin-left:auto;cursor:pointer;background:none;border:none;color:var(--muted);font-size:15px}
+
+/* ── Medication table ── */
+.med-table{width:100%;border-collapse:collapse;font-size:13px}
+.med-table th{text-align:left;padding:8px 12px;font-size:11px;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--muted);border-bottom:1px solid var(--border)}
+.med-table td{padding:10px 12px;border-bottom:1px solid rgba(30,45,69,.5)}
+.med-table tr:last-child td{border-bottom:none}
+.pill{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600}
+.pill-ok{background:rgba(16,185,129,.15);color:var(--ok)}
+.pill-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+
+/* ── Spinner ── */
+.spinner{width:15px;height:15px;border:2px solid rgba(255,255,255,.2);
+  border-top-color:#fff;border-radius:50%;animation:spin .6s linear infinite;display:none}
+.spinner.show{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  nav{display:none}
+  .stat-row{grid-template-columns:1fr 1fr}
+  .charts-grid{grid-template-columns:1fr}
+  .wb-metrics{grid-template-columns:1fr 1fr}
+  .fast-row{grid-template-columns:1fr 1fr}
+  .nb-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+<div id="tc"></div>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🧠</div>
+    <h1>Stroke Risk <span>Monitor</span></h1>
+  </div>
+  <div class="hdr-right">
+    <span class="hdr-name" id="hdr-name">Patient</span>
+    <div class="avatar" id="avatar-icon">P</div>
+    <button class="btn-logout" onclick="logout()">Sign Out</button>
+  </div>
+</header>
+
+<div class="wrapper">
+  <nav>
+    <div class="nav-sec">My Health</div>
+    <ul>
+      <li><a data-page="overview" class="active"><span class="nav-icon">🏠</span>Overview</a></li>
+      <li><a data-page="vitals"><span class="nav-icon">📊</span>Health Reports</a></li>
+      <li><a data-page="wristband"><span class="nav-icon">⌚</span>Wristband</a></li>
+      <li><a data-page="medications"><span class="nav-icon">💊</span>Medications</a></li>
+      <li><a data-page="hosp_reports"><span class="nav-icon">🏥</span>Hospital Reports</a></li>
+    </ul>
+    <div class="nav-sec">Emergency</div>
+    <ul>
+      <li><a data-page="emergency" class="sos-link"><span class="nav-icon">🚨</span>SOS Alert<span class="nav-badge">SOS</span></a></li>
+    </ul>
+  </nav>
+
+  <main id="main-content"></main>
+</div>
+
+<script>
+const API = '/api/v1';
+
+/* ─── Auth guard ─────────────────────────────────────────────────────────── */
+(function(){
+  const role = sessionStorage.getItem('srm_role');
+  if(role !== 'patient') window.location.href = '/';
+  const user = sessionStorage.getItem('srm_user') || 'patient@demo.com';
+  document.getElementById('hdr-name').textContent = user;
+  document.getElementById('avatar-icon').textContent = user[0].toUpperCase();
+})();
+
+function logout(){ sessionStorage.clear(); window.location.href = '/'; }
+
+/* ─── Toast ──────────────────────────────────────────────────────────────── */
+function toast(type, title, msg, dur=5000){
+  const icons={emergency:'🚨',ok:'✅',warn:'⚠️',info:'ℹ️'};
+  const cls={emergency:'t-emergency',ok:'t-ok',warn:'t-warn',info:''};
+  const t=document.createElement('div');
+  t.className=`toast ${cls[type]||''}`;
+  t.innerHTML=`<span class="t-icon">${icons[type]||'ℹ️'}</span>
+    <div><div class="t-title">${title}</div><div class="t-msg">${msg}</div></div>
+    <button class="t-close" onclick="this.closest('.toast').remove()">✕</button>`;
+  document.getElementById('tc').prepend(t);
+  if(dur) setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),300);},dur);
+}
+
+/* ─── Sparkline SVG helper ───────────────────────────────────────────────── */
+function sparkline(data, color, width=300, height=70, fill=true){
+  if(!data||!data.length) return '';
+  const mx=Math.max(...data), mn=Math.min(...data);
+  const pad=4, W=width-pad*2, H=height-pad*2;
+  const xs=data.map((_,i)=>pad+i*(W/(data.length-1)));
+  const ys=data.map(v=>pad+H-(mn===mx?H/2:(v-mn)/(mx-mn)*H));
+  const pts=xs.map((x,i)=>`${x},${ys[i]}`).join(' ');
+  const area=`${pts} ${xs[xs.length-1]},${height-pad} ${xs[0]},${height-pad}`;
+  return `<svg viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:${height}px">
+    ${fill?`<polygon points="${area}" fill="${color}" opacity=".12"/>`:``}
+    <polyline points="${pts}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${xs.map((x,i)=>`<circle cx="${x}" cy="${ys[i]}" r="3" fill="${color}"/>`).join('')}
+  </svg>`;
+}
+
+/* ─── Sample health data ─────────────────────────────────────────────────── */
+const DATA = {
+  bp_sys:   [148,152,155,159,156,162,158,165,160,158,163,157,155,158,160],
+  bp_dia:   [92,94,96,98,97,100,96,102,98,96,99,95,94,96,97],
+  glucose:  [118,122,128,131,129,135,138,133,137,140,136,138,142,139,138],
+  bmi:      [28.8,28.9,29.0,29.1,29.2,29.3,29.3,29.4,29.4,29.4,29.5,29.5,29.4,29.4,29.4],
+  labels:   ['5 Nov','6','7','8','9','10','11','12','13','14','15','16','17','18','19 Nov'],
+};
+
+/* ─── Pages ──────────────────────────────────────────────────────────────── */
+
+function pageOverview(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">My Health / <span>Overview</span></div>
+  <h2>Good morning, Jane 👋</h2>
+  <p>Here is a summary of your health today — 19 Nov 2026</p>
+</div>
+
+<div class="stat-row">
+  <div class="stat-card">
+    <div class="sc-icon">❤️</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,#ef4444,#f97316);-webkit-background-clip:text;-webkit-text-fill-color:transparent">158/97</div>
+    <div class="sc-lbl">Blood Pressure</div>
+    <div class="sc-sub" style="color:var(--warn)">↑ Elevated</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">🩸</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--warn),#ef4444);-webkit-background-clip:text;-webkit-text-fill-color:transparent">138</div>
+    <div class="sc-lbl">Blood Glucose mg/dL</div>
+    <div class="sc-sub" style="color:var(--warn)">↑ Above normal</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">⚖️</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent">29.4</div>
+    <div class="sc-lbl">BMI</div>
+    <div class="sc-sub" style="color:var(--accent)">→ Overweight</div>
+  </div>
+  <div class="stat-card">
+    <div class="sc-icon">⌚</div>
+    <div class="sc-val" style="background:linear-gradient(135deg,var(--ok),#06b6d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent">72</div>
+    <div class="sc-lbl">Heart Rate bpm</div>
+    <div class="sc-sub" style="color:var(--ok)">✓ Normal</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+  <div class="card card-blue">
+    <h3>📈 Blood Pressure Trend</h3>
+    <p class="sub">Last 15 readings</p>
+    <div class="chart-wrap">${sparkline(DATA.bp_sys,'#ef4444')}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>${DATA.labels[DATA.labels.length-1]}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Systolic range: ${Math.min(...DATA.bp_sys)}–${Math.max(...DATA.bp_sys)} mmHg</div>
+  </div>
+  <div class="card card-purple">
+    <h3>🩸 Blood Glucose Trend</h3>
+    <p class="sub">Last 15 readings</p>
+    <div class="chart-wrap">${sparkline(DATA.glucose,'#f59e0b')}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>${DATA.labels[DATA.labels.length-1]}</span></div>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Range: ${Math.min(...DATA.glucose)}–${Math.max(...DATA.glucose)} mg/dL · Target: &lt;126</div>
+  </div>
+</div>
+
+<div class="card card-blue" style="margin-top:20px">
+  <h3>⚠️ Your Health Reminders</h3>
+  <p class="sub">Based on your latest readings</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;font-size:13px">
+      🩺 <strong>Blood pressure is elevated (158/97)</strong> — Take your Amlodipine 5mg as prescribed. Reduce salt intake today.
+    </div>
+    <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.25);border-radius:8px;padding:12px;font-size:13px">
+      🍽️ <strong>Glucose is trending upward</strong> — Avoid high-sugar foods. Walk for 20 minutes after meals.
+    </div>
+    <div style="background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:8px;padding:12px;font-size:13px">
+      ✅ <strong>Heart rate is normal (72 bpm)</strong> — Keep up your current activity level.
+    </div>
+  </div>
+</div>`;
+}
+
+function pageVitals(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">My Health / <span>Health Reports</span></div>
+  <h2>📊 Health Reports</h2>
+  <p>Visual trends of your key health metrics over the past 15 readings</p>
+</div>
+
+<div class="charts-grid">
+  <div class="chart-container">
+    <div class="chart-title">❤️ Systolic Blood Pressure (mmHg)</div>
+    <div class="chart-wrap">${sparkline(DATA.bp_sys,'#ef4444',320,90)}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>Latest: ${DATA.bp_sys.at(-1)}</span><span>${DATA.labels.at(-1)}</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Normal &lt;120 · Elevated 120–129 · Stage 1: 130–139 · Stage 2: ≥140</div>
+    <div style="margin-top:5px;font-size:11px;font-weight:600;color:var(--warn)">Status: Stage 2 Hypertension</div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">❤️ Diastolic Blood Pressure (mmHg)</div>
+    <div class="chart-wrap">${sparkline(DATA.bp_dia,'#f97316',320,90)}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>Latest: ${DATA.bp_dia.at(-1)}</span><span>${DATA.labels.at(-1)}</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Normal &lt;80 · Stage 1: 80–89 · Stage 2: ≥90</div>
+    <div style="margin-top:5px;font-size:11px;font-weight:600;color:var(--warn)">Status: Stage 2 Hypertension</div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">🩸 Blood Glucose (mg/dL)</div>
+    <div class="chart-wrap">${sparkline(DATA.glucose,'#f59e0b',320,90)}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>Latest: ${DATA.glucose.at(-1)}</span><span>${DATA.labels.at(-1)}</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Normal (fasting) &lt;100 · Pre-diabetic: 100–125 · Diabetic risk: ≥126</div>
+    <div style="margin-top:5px;font-size:11px;font-weight:600;color:var(--warn)">Status: Pre-diabetic range — monitor closely</div>
+  </div>
+
+  <div class="chart-container">
+    <div class="chart-title">⚖️ BMI</div>
+    <div class="chart-wrap">${sparkline(DATA.bmi,'#8b5cf6',320,90)}</div>
+    <div class="chart-label-row"><span>${DATA.labels[0]}</span><span>Latest: ${DATA.bmi.at(-1)}</span><span>${DATA.labels.at(-1)}</span></div>
+    <div style="margin-top:10px;font-size:11px;color:var(--muted)">Normal: 18.5–24.9 · Overweight: 25–29.9 · Obese: ≥30</div>
+    <div style="margin-top:5px;font-size:11px;font-weight:600;color:var(--accent)">Status: Overweight — trending toward obese</div>
+  </div>
+</div>
+
+<div class="card card-blue" style="margin-top:4px">
+  <h3>📋 Recent Readings Log</h3>
+  <p class="sub">Last 5 recorded sessions</p>
+  <table class="med-table">
+    <thead><tr><th>Date</th><th>BP</th><th>Glucose</th><th>BMI</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>19 Nov 2026</td><td>158/97</td><td>138 mg/dL</td><td>29.4</td><td><span class="pill pill-warn">Elevated</span></td></tr>
+      <tr><td>18 Nov 2026</td><td>155/95</td><td>139 mg/dL</td><td>29.4</td><td><span class="pill pill-warn">Elevated</span></td></tr>
+      <tr><td>17 Nov 2026</td><td>160/96</td><td>142 mg/dL</td><td>29.4</td><td><span class="pill pill-warn">High</span></td></tr>
+      <tr><td>15 Nov 2026</td><td>163/99</td><td>136 mg/dL</td><td>29.5</td><td><span class="pill pill-warn">High</span></td></tr>
+      <tr><td>12 Nov 2026</td><td>165/102</td><td>133 mg/dL</td><td>29.4</td><td><span class="pill pill-warn">High</span></td></tr>
+    </tbody>
+  </table>
+</div>`;
+}
+
+function pageWristband(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">My Health / <span>Wristband</span></div>
+  <h2>⌚ Smart Wristband</h2>
+  <p>Link and manage your wearable health sensor</p>
+</div>
+
+<div class="card card-blue">
+  <h3>Device Status</h3>
+  <p class="sub">Your connected wearable device</p>
+  <div class="wband-status" id="wb-status">
+    <div class="wband-icon">⌚</div>
+    <div class="wband-info">
+      <div class="wb-name" id="wb-name">No device linked</div>
+      <div class="wb-status wb-disconnected" id="wb-conn">
+        <span class="wb-dot wb-dot-off"></span> Not connected
+      </div>
+    </div>
+  </div>
+
+  <div class="wb-metrics" id="wb-metrics" style="display:none">
+    <div class="wb-metric">
+      <div class="wm-val" style="color:#ef4444" id="wb-hr">72</div>
+      <div class="wm-lbl">❤️ Heart Rate</div>
+    </div>
+    <div class="wb-metric">
+      <div class="wm-val" style="color:var(--ok)" id="wb-spo2">97%</div>
+      <div class="wm-lbl">🫁 SpO2</div>
+    </div>
+    <div class="wb-metric">
+      <div class="wm-val" style="color:var(--accent)" id="wb-steps">4,218</div>
+      <div class="wm-lbl">👟 Steps</div>
+    </div>
+  </div>
+
+  <div class="btn-row" id="wb-btn-row">
+    <button class="btn btn-primary" id="wb-link-btn" onclick="linkWristband()">
+      🔗 Link Wristband <div class="spinner" id="wb-spin"></div>
+    </button>
+  </div>
+</div>
+
+<div class="card card-purple" id="wb-pair-card" style="display:none">
+  <h3>📡 Pairing Mode</h3>
+  <p class="sub">Make sure your wristband is in pairing mode (hold button 3s)</p>
+  <div style="text-align:center;padding:20px 0">
+    <div style="font-size:50px;animation:pulse-icon 1s infinite">📡</div>
+    <p style="margin-top:12px;color:var(--accent);font-weight:600;font-size:14px" id="scan-txt">Scanning for devices…</p>
+    <div style="margin-top:8px;font-size:12px;color:var(--muted)" id="scan-sub">This may take up to 30 seconds</div>
+  </div>
+</div>
+
+<div class="card card-blue">
+  <h3>📋 Compatible Devices</h3>
+  <p class="sub">Supported health wristbands</p>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+    ${['Mi Band 7','Fitbit Charge 6','Apple Watch Series 9','Samsung Galaxy Watch 6','Garmin Vivosmart 5','Omron HeartGuide'].map(d=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center">
+      <div style="font-size:22px;margin-bottom:6px">⌚</div>
+      <div style="font-size:12px;font-weight:600">${d}</div>
+      <div style="font-size:10px;color:var(--ok);margin-top:3px">✓ Supported</div>
+    </div>`).join('')}
+  </div>
+</div>`;
+}
+
+function pageMedications(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">My Health / <span>Medications</span></div>
+  <h2>💊 My Medications</h2>
+  <p>Your current prescribed medications and schedule</p>
+</div>
+<div class="card card-blue">
+  <h3>Prescription List</h3>
+  <p class="sub">As prescribed by your healthcare provider</p>
+  <table class="med-table">
+    <thead><tr><th>Medication</th><th>Dose</th><th>Frequency</th><th>Purpose</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>Amlodipine</td><td>5 mg</td><td>Once daily (morning)</td><td>Blood pressure</td><td><span class="pill pill-ok">Active</span></td></tr>
+      <tr><td>Metformin</td><td>500 mg</td><td>Twice daily (meals)</td><td>Blood glucose</td><td><span class="pill pill-ok">Active</span></td></tr>
+      <tr><td>Aspirin</td><td>75 mg</td><td>Once daily (night)</td><td>Blood thinning</td><td><span class="pill pill-ok">Active</span></td></tr>
+      <tr><td>Atorvastatin</td><td>20 mg</td><td>Once daily (night)</td><td>Cholesterol</td><td><span class="pill pill-warn">Review due</span></td></tr>
+    </tbody>
+  </table>
+  <div class="btn-row">
+    <button class="btn btn-secondary" onclick="toast('ok','Reminder Set','You will be reminded to take your medications at the scheduled times.')">🔔 Set Reminders</button>
+  </div>
+</div>
+<div class="card card-purple">
+  <h3>📅 Today's Schedule</h3>
+  <p class="sub">Medication timeline for today</p>
+  <div style="display:flex;flex-direction:column;gap:10px">
+    ${[
+      {time:'08:00',med:'Amlodipine 5mg',done:true},
+      {time:'13:00',med:'Metformin 500mg (lunch)',done:true},
+      {time:'20:00',med:'Metformin 500mg (dinner)',done:false},
+      {time:'22:00',med:'Aspirin 75mg + Atorvastatin 20mg',done:false},
+    ].map(r=>`
+    <div style="display:flex;align-items:center;gap:14px;background:var(--surface2);border:1px solid ${r.done?'rgba(16,185,129,.3)':'var(--border)'};border-radius:8px;padding:12px 14px">
+      <span style="font-size:13px;font-weight:700;color:var(--muted);min-width:46px">${r.time}</span>
+      <span style="flex:1;font-size:13px">${r.med}</span>
+      <span style="font-size:12px;font-weight:700;color:${r.done?'var(--ok)':'var(--muted)'}">${r.done?'✅ Taken':'⏳ Pending'}</span>
+    </div>`).join('')}
+  </div>
+</div>`;
+}
+
+function pageEmergency(){
+  setTimeout(()=>{ loadNeighbors(); },100);
+  return `
+<div class="pg-hdr">
+  <div class="crumb">Emergency / <span style="color:var(--danger)">SOS Alert</span></div>
+  <h2 style="color:var(--danger)">🚨 Emergency SOS</h2>
+  <p>One press alerts your doctor, nearest ambulance, and all registered neighbors</p>
+</div>
+
+<!-- SOS Button -->
+<div class="card" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04)">
+  <div class="sos-container">
+    <button class="sos-btn" onclick="triggerSOS()" id="sos-btn">
+      <span style="font-size:38px">🚨</span>
+      <span class="sos-lbl">SOS</span>
+    </button>
+    <p style="margin-top:14px;font-size:13px;color:#fca5a5;font-weight:600">Press for instant emergency broadcast</p>
+    <p style="font-size:11px;color:var(--muted);margin-top:4px">Simultaneously notifies your doctor · ambulance · neighbors</p>
+    <div class="sos-msg" id="sos-msg">🚨 Emergency alert sent! Doctor, ambulance &amp; neighbors have been notified.<br><strong>Call 999 / 112 immediately if you can.</strong></div>
+  </div>
+</div>
+
+<!-- Dispatch Status (shown after SOS) -->
+<div id="dispatch-panel" style="display:none">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">
+    <div id="ds-doctor" style="background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px;text-align:center;transition:all .4s">
+      <div style="font-size:28px;margin-bottom:8px">👨‍⚕️</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Doctor Notified</div>
+      <div id="ds-doctor-st" style="font-size:11px;color:var(--muted)">Sending…</div>
+    </div>
+    <div id="ds-ambulance" style="background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px;text-align:center;transition:all .4s">
+      <div style="font-size:28px;margin-bottom:8px">🚑</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Ambulance</div>
+      <div id="ds-amb-st" style="font-size:11px;color:var(--muted)">Locating nearest unit…</div>
+    </div>
+    <div id="ds-neighbors" style="background:var(--surface);border:2px solid var(--border);border-radius:14px;padding:16px;text-align:center;transition:all .4s">
+      <div style="font-size:28px;margin-bottom:8px">👥</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Neighbors</div>
+      <div id="ds-nb-st" style="font-size:11px;color:var(--muted)">Broadcasting…</div>
+    </div>
+  </div>
+  <!-- Ambulance detail card -->
+  <div id="amb-detail-card" style="display:none;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.3);border-radius:14px;padding:18px;margin-bottom:20px">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px">
+      <span style="font-size:34px">🚑</span>
+      <div>
+        <div style="font-weight:800;font-size:15px;color:var(--ok)">Ambulance Dispatched</div>
+        <div id="amb-unit" style="font-size:12px;color:var(--muted);margin-top:2px"></div>
+      </div>
+      <div style="margin-left:auto;text-align:right">
+        <div style="font-size:28px;font-weight:900;color:var(--ok)" id="amb-eta">—</div>
+        <div style="font-size:11px;color:var(--muted)">ETA (minutes)</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:12px">
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Unit</div>
+        <div id="amb-unit-no" style="font-weight:700"></div>
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:10px">
+        <div style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px">Contact</div>
+        <div id="amb-contact" style="font-weight:700"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- FAST Stroke Signs -->
+<div class="card" style="border-color:rgba(239,68,68,.2)">
+  <h3>FAST Stroke Warning Signs</h3>
+  <p class="sub">Recognise these symptoms immediately</p>
+  <div class="fast-row">
+    <div class="fast-card"><div class="fl">F</div><div class="fw">Face Drooping?</div></div>
+    <div class="fast-card"><div class="fl">A</div><div class="fw">Arm Weakness?</div></div>
+    <div class="fast-card"><div class="fl">S</div><div class="fw">Speech Slurred?</div></div>
+    <div class="fast-card"><div class="fl">T</div><div class="fw">Time — Call 999</div></div>
+  </div>
+</div>
+
+<!-- Symptom Checker -->
+<div class="card card-purple">
+  <h3>🩺 Symptom Checker</h3>
+  <p class="sub">Tick any symptoms you feel right now — we will advise what to do</p>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px" id="symptom-checks">
+    ${[
+      ['sym-face','😶 Face drooping or uneven smile'],
+      ['sym-arm','💪 Arm weakness or numbness'],
+      ['sym-speech','🗣️ Slurred or confused speech'],
+      ['sym-headache','🤕 Sudden severe headache'],
+      ['sym-vision','👁️ Sudden blurred/lost vision'],
+      ['sym-balance','🤸 Loss of balance or dizziness'],
+      ['sym-chest','💔 Chest tightness or pain'],
+      ['sym-numb','⚡ Sudden numbness (face/arm/leg)'],
+    ].map(([id,label])=>`
+      <label style="display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);
+        border-radius:8px;padding:10px 12px;cursor:pointer;font-size:13px;transition:border .2s"
+        onmouseover="this.style.borderColor='var(--accent2)'" onmouseout="this.style.borderColor='var(--border)'">
+        <input type="checkbox" id="${id}" style="width:16px;height:16px;accent-color:var(--danger);cursor:pointer">
+        ${label}
+      </label>`).join('')}
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" onclick="checkSymptoms()" style="background:linear-gradient(135deg,var(--accent2),#ec4899)">
+      🩺 Assess My Symptoms
+    </button>
+    <button class="btn btn-secondary" onclick="clearSymptoms()">Clear</button>
+  </div>
+  <div id="symptom-result" style="display:none;margin-top:16px;border-radius:10px;overflow:hidden"></div>
+</div>
+
+<!-- Stress Management -->
+<div class="card card-blue">
+  <h3>🧘 Stress & Wellness Control</h3>
+  <p class="sub">Evidence-based techniques to reduce stress and protect your cardiovascular health</p>
+
+  <!-- Stress level picker -->
+  <div style="margin-bottom:18px">
+    <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">How stressed do you feel right now?</div>
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px" id="stress-level-row">
+      ${[['1','😌','Calm'],['2','🙂','Mild'],['3','😐','Moderate'],['4','😟','High'],['5','😰','Very High']].map(([v,e,l])=>`
+        <div class="stress-lvl-btn" data-val="${v}" onclick="selectStressLevel(${v})"
+          style="background:var(--surface2);border:2px solid var(--border);border-radius:10px;padding:10px 4px;
+          text-align:center;cursor:pointer;transition:all .2s">
+          <div style="font-size:22px">${e}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:4px;font-weight:600">${l}</div>
+        </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Breathing exercise -->
+  <div style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);border-radius:12px;padding:16px;margin-bottom:14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <div style="font-weight:700;font-size:13px">🌬️ 4-7-8 Breathing Exercise</div>
+      <button class="btn btn-secondary" onclick="startBreathing()" id="breath-btn" style="font-size:12px;padding:6px 14px">▶ Start</button>
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:10px">Clinically proven to lower heart rate and blood pressure within minutes</div>
+    <div id="breath-display" style="display:none;text-align:center;padding:14px 0">
+      <div id="breath-circle" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--accent);
+        margin:0 auto 10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
+        color:var(--accent);transition:transform 4s ease,border-color .5s"></div>
+      <div id="breath-label" style="font-size:14px;font-weight:700;color:var(--accent)"></div>
+      <div id="breath-count" style="font-size:12px;color:var(--muted);margin-top:4px"></div>
+    </div>
+  </div>
+
+  <!-- Technique cards -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:16px;margin-bottom:6px">🏃</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Physical Activity</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">30 mins of brisk walking daily reduces stroke risk by up to 27%. Even a 10-minute walk lowers cortisol levels immediately.</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:16px;margin-bottom:6px">🧘</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Mindfulness & Meditation</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">5–10 minutes of daily mindfulness lowers systolic BP by an average of 5 mmHg (AHA guidelines 2023).</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:16px;margin-bottom:6px">😴</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Sleep Hygiene</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">7–9 hours of quality sleep per night. Poor sleep raises cortisol and BP. Avoid screens 1 hour before bedtime.</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:16px;margin-bottom:6px">🥗</div>
+      <div style="font-weight:700;font-size:13px;margin-bottom:4px">Anti-Stress Diet</div>
+      <div style="font-size:12px;color:var(--muted);line-height:1.6">Increase magnesium (leafy greens, nuts), omega-3 (oily fish), and reduce caffeine. DASH diet reduces BP within 2 weeks.</div>
+    </div>
+  </div>
+
+  <!-- Personalised advice panel -->
+  <div id="stress-advice" style="display:none;border-radius:10px;overflow:hidden">
+    <div style="padding:12px 16px;font-size:12px;font-weight:700" id="stress-adv-hdr"></div>
+    <div style="padding:14px 16px;font-size:13px;line-height:1.7" id="stress-adv-body"></div>
+  </div>
+</div>
+
+<!-- Neighbor Alert Network -->
+<div class="card card-blue">
+  <h3>👥 Neighbor Alert Network</h3>
+  <p class="sub">These neighbors will be notified when you press SOS</p>
+  <div class="nb-grid" id="nb-grid"><div style="color:var(--muted);font-size:12px">Loading…</div></div>
+  <div class="btn-row">
+    <button class="btn btn-danger" id="nb-btn" onclick="alertNeighbors()">
+      📢 Alert All Neighbors <div class="spinner" id="nb-spin"></div>
+    </button>
+  </div>
+</div>`;
+}
+
+/* ─── Wristband logic ─────────────────────────────────────────────────────── */
+let wbLinked = false;
+function linkWristband(){
+  const btn=document.getElementById('wb-link-btn');
+  const spin=document.getElementById('wb-spin');
+  const card=document.getElementById('wb-pair-card');
+  if(wbLinked){
+    // Unlink
+    wbLinked=false;
+    document.getElementById('wb-name').textContent='No device linked';
+    document.getElementById('wb-conn').innerHTML='<span class="wb-dot wb-dot-off"></span> Not connected';
+    document.getElementById('wb-conn').className='wb-status wb-disconnected';
+    document.getElementById('wb-metrics').style.display='none';
+    btn.textContent='🔗 Link Wristband';
+    card.style.display='none';
+    toast('info','Wristband Unlinked','Your wristband has been disconnected.');
+    return;
+  }
+  card.style.display='block';
+  btn.disabled=true; spin.classList.add('show');
+  let t=0;
+  const steps=['Scanning for devices…','Found: Mi Band 7 Pro…','Pairing…','Syncing health data…','Connected!'];
+  const iv=setInterval(()=>{
+    t++;
+    if(t<steps.length){
+      document.getElementById('scan-txt').textContent=steps[t];
+    } else {
+      clearInterval(iv);
+      card.style.display='none';
+      wbLinked=true;
+      btn.disabled=false; spin.classList.remove('show');
+      btn.innerHTML='🔓 Unlink Wristband';
+      document.getElementById('wb-name').textContent='Mi Band 7 Pro — SN: MB7P-20241119';
+      document.getElementById('wb-conn').innerHTML='<span class="wb-dot wb-dot-on"></span> Connected — syncing live';
+      document.getElementById('wb-conn').className='wb-status wb-connected';
+      document.getElementById('wb-metrics').style.display='grid';
+      toast('ok','Wristband Linked!','Mi Band 7 Pro connected. Live data syncing.');
+      startWBSimulation();
+    }
+  }, 900);
+}
+function startWBSimulation(){
+  setInterval(()=>{
+    const hr=document.getElementById('wb-hr');
+    const spo=document.getElementById('wb-spo2');
+    const st=document.getElementById('wb-steps');
+    if(hr) hr.textContent=68+Math.round(Math.random()*12);
+    if(spo) spo.textContent=(96+Math.round(Math.random()*2))+'%';
+    if(st){ const c=parseInt((st.textContent||'0').replace(/,/g,''));st.textContent=(c+Math.round(Math.random()*8)).toLocaleString(); }
+  },3000);
+}
+
+/* ─── Neighbor helpers ────────────────────────────────────────────────────── */
+async function loadNeighbors(){
+  try{
+    const r=await fetch(`${API}/alert/neighbors`);
+    const j=await r.json();
+    renderNeighbors(j.neighbors||[]);
+  }catch{}
+}
+function renderNeighbors(list){
+  const g=document.getElementById('nb-grid'); if(!g) return;
+  g.innerHTML=list.map(nb=>`
+    <div class="nb-card ${nb.notified_at?'notified':''}" id="nb-${nb.id}">
+      <div class="nb-name">👤 ${nb.name}</div>
+      <div class="nb-phone">📱 ${nb.phone}</div>
+      <div class="nb-addr">📍 ${nb.address}</div>
+      <span class="nb-st ${nb.notified_at?'nb-sent':'nb-idle'}">
+        ${nb.notified_at?'✅ Notified':'⏳ Standby'}
+      </span>
+    </div>`).join('');
+}
+async function alertNeighbors(){
+  const btn=document.getElementById('nb-btn');
+  const spin=document.getElementById('nb-spin');
+  if(btn) btn.disabled=true; if(spin) spin.classList.add('show');
+  const patName = sessionStorage.getItem('srm_user') || 'Jane Smith';
+  try{
+    const r=await fetch(`${API}/alert/neighbors`,{method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({patient_name:patName,urgency:'EMERGENCY',message:'Patient has pressed SOS — needs immediate help!'})});
+    const j=await r.json();
+    if(j.success){
+      renderNeighbors(j.neighbors_notified||[]);
+      toast('emergency',`🚨 ${j.total_notified} Neighbors Notified!`,'Alert broadcast complete.',0);
+    }
+  }catch(e){toast('warn','Alert Failed',e.message);}
+  finally{if(btn) btn.disabled=false; if(spin) spin.classList.remove('show');}
+}
+
+function triggerSOS(){
+  const btn=document.getElementById('sos-btn');
+  if(btn){ btn.style.transform='scale(.9)'; setTimeout(()=>btn.style.transform='',200); }
+  const msgEl=document.getElementById('sos-msg');
+  if(msgEl) msgEl.classList.add('show');
+
+  // Show dispatch panel immediately
+  const panel=document.getElementById('dispatch-panel');
+  if(panel) panel.style.display='block';
+
+  // Write SOS event to localStorage so the doctor dashboard picks it up
+  const patName = sessionStorage.getItem('srm_user') || 'Jane Smith';
+  const sosEvent = {
+    id: 'sos_' + Date.now(),
+    patient_name: patName,
+    time: new Date().toISOString(),
+    urgent: true,
+    message: 'Patient has triggered SOS emergency alert.',
+  };
+  localStorage.setItem('srm_sos_event', JSON.stringify(sosEvent));
+
+  toast('emergency','🚨 SOS TRIGGERED!','Doctor, ambulance & neighbors alerted NOW!',0);
+
+  // Step 1 — doctor confirmed (1.2 s)
+  setTimeout(()=>{
+    const d=document.getElementById('ds-doctor');
+    const s=document.getElementById('ds-doctor-st');
+    if(d){ d.style.borderColor='var(--ok)'; d.style.background='rgba(16,185,129,.08)'; }
+    if(s){ s.textContent='✅ Notified — Dr. Kumar alerted'; s.style.color='var(--ok)'; }
+  },1200);
+
+  // Step 2 — ambulance dispatched (2.4 s)
+  setTimeout(()=>{
+    const d=document.getElementById('ds-ambulance');
+    const s=document.getElementById('ds-amb-st');
+    if(d){ d.style.borderColor='var(--ok)'; d.style.background='rgba(16,185,129,.08)'; }
+    if(s){ s.textContent='✅ Unit AMB-04 dispatched'; s.style.color='var(--ok)'; }
+    const ambCard=document.getElementById('amb-detail-card');
+    if(ambCard){
+      ambCard.style.display='block';
+      document.getElementById('amb-unit').textContent='City Emergency Medical Services';
+      document.getElementById('amb-eta').textContent='7';
+      document.getElementById('amb-unit-no').textContent='Unit AMB-04 · ICU equipped';
+      document.getElementById('amb-contact').textContent='📞 112 / 999';
+    }
+  },2400);
+
+  // Step 3 — neighbors (3.2 s)
+  alertNeighbors();
+  setTimeout(()=>{
+    const d=document.getElementById('ds-neighbors');
+    const s=document.getElementById('ds-nb-st');
+    if(d){ d.style.borderColor='var(--ok)'; d.style.background='rgba(16,185,129,.08)'; }
+    if(s){ s.textContent='✅ 3 neighbors notified'; s.style.color='var(--ok)'; }
+  },3200);
+
+  // Countdown ETA every minute
+  let eta=7;
+  const etaInterval=setInterval(()=>{
+    eta--;
+    const el=document.getElementById('amb-eta');
+    if(el) el.textContent=eta>0?eta:'🚑 Arrived';
+    if(eta<=0) clearInterval(etaInterval);
+  },60000);
+}
+
+/* ─── Symptom checker ─────────────────────────────────────────────────────── */
+function checkSymptoms(){
+  const allIds=['sym-face','sym-arm','sym-speech','sym-headache','sym-vision','sym-balance','sym-chest','sym-numb'];
+  const fastIds=['sym-face','sym-arm','sym-speech'];
+  const checked=allIds.filter(id=>{ const el=document.getElementById(id); return el&&el.checked; });
+  const fastHit=fastIds.filter(id=>{ const el=document.getElementById(id); return el&&el.checked; });
+  const res=document.getElementById('symptom-result');
+  if(!res) return;
+  res.style.display='block';
+  if(checked.length===0){
+    res.innerHTML=`<div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);padding:14px 16px;border-radius:0;font-size:13px;color:var(--ok)">✅ No symptoms selected. If you feel unwell, tick your symptoms above and re-assess.</div>`;
+    return;
+  }
+  if(fastHit.length>=2){
+    res.innerHTML=`<div style="background:rgba(239,68,68,.15);border-top:1px solid var(--danger);padding:16px;animation:flash 1s infinite">
+      <div style="font-size:15px;font-weight:800;color:#fca5a5;margin-bottom:8px">🚨 POSSIBLE STROKE — ACT NOW</div>
+      <div style="font-size:13px;color:#fca5a5;line-height:1.7;margin-bottom:10px">
+        You have reported <strong>${fastHit.length} FAST warning signs</strong>. This strongly suggests a possible stroke.
+        <strong>Do not wait</strong> — press the SOS button above and call emergency services immediately.
+      </div>
+      <div style="font-size:13px;font-weight:700;color:#fff;background:var(--danger);border-radius:8px;padding:10px 14px;text-align:center">
+        📞 CALL 999 / 112 RIGHT NOW — Do not drive yourself
+      </div></div>`;
+    toast('emergency','🚨 FAST Signs Detected!','Call emergency services immediately.',0);
+  } else if(checked.length>=3||fastHit.length===1){
+    res.innerHTML=`<div style="background:rgba(245,158,11,.1);border-top:1px solid rgba(245,158,11,.3);padding:16px">
+      <div style="font-size:14px;font-weight:700;color:#fcd34d;margin-bottom:8px">⚠️ Seek Medical Care Soon</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.7">You have reported <strong>${checked.length} symptom(s)</strong>. These should be evaluated by a doctor within the next few hours. If symptoms worsen, call 999 / 112 immediately.</div></div>`;
+    toast('warn','Symptoms Reported','Please seek medical attention soon.',8000);
+  } else {
+    res.innerHTML=`<div style="background:rgba(59,130,246,.08);border-top:1px solid rgba(59,130,246,.2);padding:16px">
+      <div style="font-size:14px;font-weight:700;color:var(--accent);margin-bottom:8px">ℹ️ Monitor Your Symptoms</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.7">You have reported <strong>${checked.length} mild symptom(s)</strong>. Rest, drink water, and monitor how you feel. If symptoms worsen, re-assess or contact your doctor.</div></div>`;
+  }
+}
+function clearSymptoms(){
+  ['sym-face','sym-arm','sym-speech','sym-headache','sym-vision','sym-balance','sym-chest','sym-numb']
+    .forEach(id=>{ const el=document.getElementById(id); if(el) el.checked=false; });
+  const r=document.getElementById('symptom-result'); if(r) r.style.display='none';
+}
+
+/* ─── Stress management ───────────────────────────────────────────────────── */
+function selectStressLevel(val){
+  document.querySelectorAll('.stress-lvl-btn').forEach(b=>{
+    const active=parseInt(b.dataset.val)===val;
+    b.style.borderColor=active?'var(--accent2)':'var(--border)';
+    b.style.background=active?'rgba(139,92,246,.12)':'var(--surface2)';
+  });
+  const adviceMap={
+    1:{color:'rgba(16,185,129,.1)',border:'rgba(16,185,129,.3)',hdr:'😌 You feel calm — keep it up!',hdrColor:'var(--ok)',
+       body:'Great work maintaining a calm state. Continue your current routine: regular exercise, good sleep, and a balanced diet are your best long-term protectors against stroke risk.'},
+    2:{color:'rgba(59,130,246,.08)',border:'rgba(59,130,246,.2)',hdr:'🙂 Mild stress — easy fixes available',hdrColor:'var(--accent)',
+       body:'Try a 5-minute walk or the 4-7-8 breathing exercise above. Light stretching or listening to calm music for 10 minutes can reset your nervous system effectively.'},
+    3:{color:'rgba(245,158,11,.08)',border:'rgba(245,158,11,.25)',hdr:'😐 Moderate stress — take action now',hdrColor:'var(--warn)',
+       body:'Do the breathing exercise now. Step outside for 10 minutes. Avoid caffeine for the rest of the day. Prolonged moderate stress directly raises blood pressure — do not ignore it.'},
+    4:{color:'rgba(239,68,68,.08)',border:'rgba(239,68,68,.3)',hdr:'😟 High stress — act immediately',hdrColor:'#fca5a5',
+       body:'Stop what you are doing and do the 4-7-8 breathing exercise for 3 cycles. Call a trusted person. High stress significantly raises stroke risk — notify your doctor if this persists for more than 2 days.'},
+    5:{color:'rgba(239,68,68,.15)',border:'var(--danger)',hdr:'😰 Very high stress — urgent',hdrColor:'#fca5a5',
+       body:'This requires immediate action. Do the breathing exercise now, lie down in a quiet space, and call someone. If you also experience chest tightness, headache, or any numbness, press SOS or call your doctor immediately.'},
+  };
+  const advice=adviceMap[val];
+  const panel=document.getElementById('stress-advice');
+  const hdr=document.getElementById('stress-adv-hdr');
+  const body=document.getElementById('stress-adv-body');
+  if(panel&&advice){
+    panel.style.display='block';
+    panel.style.background=advice.color;
+    panel.style.border='1px solid '+advice.border;
+    hdr.style.color=advice.hdrColor;
+    hdr.textContent=advice.hdr;
+    body.textContent=advice.body;
+  }
+}
+
+let _breathRunning=false, _breathTimer=null;
+function startBreathing(){
+  if(_breathRunning){
+    clearTimeout(_breathTimer); _breathRunning=false;
+    document.getElementById('breath-display').style.display='none';
+    document.getElementById('breath-btn').textContent='▶ Start';
+    return;
+  }
+  _breathRunning=true;
+  document.getElementById('breath-display').style.display='block';
+  document.getElementById('breath-btn').textContent='■ Stop';
+  let cycle=0;
+  function runCycle(){
+    if(!_breathRunning) return;
+    cycle++;
+    const lbl=document.getElementById('breath-label');
+    const cnt=document.getElementById('breath-count');
+    const circle=document.getElementById('breath-circle');
+    if(cnt) cnt.textContent='Cycle '+cycle+' of 4';
+    if(lbl) lbl.textContent='Inhale…';
+    if(circle){ circle.style.transform='scale(1.5)'; circle.style.borderColor='var(--accent)'; circle.textContent='4s'; }
+    _breathTimer=setTimeout(()=>{
+      if(!_breathRunning) return;
+      if(lbl) lbl.textContent='Hold…';
+      if(circle){ circle.style.transform='scale(1.5)'; circle.style.borderColor='var(--warn)'; circle.textContent='7s'; }
+      _breathTimer=setTimeout(()=>{
+        if(!_breathRunning) return;
+        if(lbl) lbl.textContent='Exhale slowly…';
+        if(circle){ circle.style.transform='scale(1)'; circle.style.borderColor='var(--ok)'; circle.textContent='8s'; }
+        _breathTimer=setTimeout(()=>{
+          if(!_breathRunning) return;
+          if(cycle<4) runCycle();
+          else{
+            _breathRunning=false;
+            if(lbl) lbl.textContent='✅ Complete! Well done.';
+            if(circle){ circle.style.borderColor='var(--ok)'; circle.textContent='Done'; }
+            document.getElementById('breath-btn').textContent='▶ Restart';
+            toast('ok','Breathing Complete','4-7-8 exercise done. Your heart rate should be lower now.',6000);
+          }
+        },8000);
+      },7000);
+    },4000);
+  }
+  runCycle();
+}
+
+/* ─── Hospital Reports ───────────────────────────────────────────────────── */
+function pageHospitalReports(){
+  return `
+<div class="pg-hdr">
+  <div class="crumb">My Health / <span>Hospital Reports</span></div>
+  <h2>🏥 Hospital Reports</h2>
+  <p>Your previous hospital visit summaries and discharge reports</p>
+</div>
+
+<!-- Upload new report -->
+<div class="card card-blue">
+  <h3>📤 Upload a New Report</h3>
+  <p class="sub">Paste a hospital discharge report to extract and store key findings</p>
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="field">
+      <label>Hospital Name *</label>
+      <input id="hr-hosp" placeholder="e.g. City General Hospital"/>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="field">
+        <label>Visit Date</label>
+        <input id="hr-date" type="date"/>
+      </div>
+      <div class="field">
+        <label>Report Type</label>
+        <select id="hr-type">
+          <option>Discharge Summary</option>
+          <option>Outpatient Report</option>
+          <option>Lab Results</option>
+          <option>Radiology Report</option>
+          <option>Cardiology Report</option>
+          <option>Emergency Report</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label>Report Text *</label>
+      <textarea id="hr-text" style="min-height:140px"
+        placeholder="Paste the full hospital report text here…"></textarea>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="btn btn-primary" id="hr-btn" onclick="submitReport()">
+      📤 Save &amp; Analyse <div class="spinner" id="hr-spin"></div>
+    </button>
+    <button class="btn btn-secondary" onclick="loadSampleReport()">Load Sample</button>
+  </div>
+  <div id="hr-alert" style="display:none;margin-top:12px;border-radius:8px;padding:10px 14px;font-size:12px"></div>
+</div>
+
+<!-- AI Report Analysis Result -->
+<div class="card card-blue" id="ai-analysis-card" style="display:none">
+  <h3>🤖 AI Report Analysis</h3>
+  <p class="sub">IBM Granite AI · cardiovascular findings extracted from your report</p>
+  <div id="ai-summary-box" style="background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.18);
+    border-radius:10px;padding:16px 18px;margin-bottom:18px;line-height:1.75;font-size:13.5px;color:var(--text)"></div>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px" id="ai-metric-tiles"></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:700">Diagnoses Found</div>
+      <div id="ai-diagnoses"></div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;font-weight:700">Medications Mentioned</div>
+      <div id="ai-meds"></div>
+    </div>
+  </div>
+  <div id="ai-cardio-wrap" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:18px">
+    <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;font-weight:700">Cardiovascular History</div>
+    <div id="ai-cardio-text" style="font-size:13px;line-height:1.65;color:var(--text)"></div>
+  </div>
+  <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;
+    padding:10px 14px;font-size:11px;color:#fcd34d;line-height:1.6" id="ai-disclaimer"></div>
+</div>
+
+<!-- Previous reports list -->
+<div class="card card-purple">
+  <h3>📋 Previous Reports</h3>
+  <p class="sub">All stored hospital reports for your records</p>
+  <div id="report-list"></div>
+</div>
+
+<!-- Expanded report view -->
+<div class="card card-blue" id="report-detail" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+    <h3 id="rd-title">Report Detail</h3>
+    <button class="btn btn-secondary" style="font-size:12px;padding:6px 12px" onclick="closeDetail()">✕ Close</button>
+  </div>
+  <div id="rd-body"></div>
+</div>`;
+}
+
+/* sample data + storage helpers */
+const SAMPLE_REPORTS_DATA = [
+  {
+    id:'r1', hospital:'City General Hospital', date:'2024-11-10', type:'Discharge Summary',
+    text:'Patient admitted 2024-11-10. Diagnosed with hypertension (BP 165/105). History of TIA. Prescribed amlodipine 5mg. Fasting glucose 142 mg/dL. Total cholesterol 230 mg/dL. Advised lifestyle changes and follow-up in 4 weeks.',
+    findings:{bp:'165/105 mmHg', glucose:'142 mg/dL', cholesterol:'230 mg/dL', diagnoses:['Hypertension','TIA history'], meds:['Amlodipine 5mg']}
+  },
+  {
+    id:'r2', hospital:'Apollo Cardiology Centre', date:'2024-09-02', type:'Cardiology Report',
+    text:'Echocardiogram performed. Mild left ventricular hypertrophy noted. EF 58%. BP at review 158/96. No significant valve disease. Recommend annual follow-up and continued antihypertensive therapy.',
+    findings:{bp:'158/96 mmHg', glucose:'N/A', cholesterol:'N/A', diagnoses:['Mild LVH','EF 58%'], meds:['Antihypertensive (continued)']}
+  },
+  {
+    id:'r3', hospital:'District Diabetes Clinic', date:'2024-06-15', type:'Outpatient Report',
+    text:'Routine diabetes review. HbA1c 7.2%. Fasting glucose 131 mg/dL. Weight 78 kg, BMI 29.1. Kidney function normal. Continue Metformin 500mg BD. Dietician referral made.',
+    findings:{bp:'N/A', glucose:'131 mg/dL (HbA1c 7.2%)', cholesterol:'N/A', diagnoses:['Type 2 Diabetes — controlled'], meds:['Metformin 500mg BD']}
+  },
+];
+
+function getStoredReports(){
+  try{ return JSON.parse(localStorage.getItem('srm_pt_reports')||'null') || SAMPLE_REPORTS_DATA; }
+  catch{ return SAMPLE_REPORTS_DATA; }
+}
+function saveReports(list){ localStorage.setItem('srm_pt_reports', JSON.stringify(list)); }
+
+function renderReportList(){
+  const list = document.getElementById('report-list');
+  if(!list) return;
+  const reports = getStoredReports();
+  if(!reports.length){
+    list.innerHTML='<div style="color:var(--muted);font-size:13px;padding:8px">No reports stored yet. Upload your first report above.</div>';
+    return;
+  }
+  list.innerHTML = reports.map((r,i)=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;
+      padding:16px;margin-bottom:12px;cursor:pointer;transition:border .2s"
+      onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'"
+      onclick="viewReport('${r.id}')">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <div>
+          <div style="font-weight:700;font-size:14px">🏥 ${r.hospital}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:2px">📅 ${r.date} &nbsp;·&nbsp; <span style="color:var(--accent2)">${r.type}</span></div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <span style="font-size:11px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.2);
+            color:var(--accent);border-radius:6px;padding:3px 10px;cursor:pointer"
+            onclick="event.stopPropagation();viewReport('${r.id}')">View</span>
+          <span style="font-size:11px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);
+            color:var(--danger);border-radius:6px;padding:3px 10px;cursor:pointer"
+            onclick="event.stopPropagation();deleteReport('${r.id}')">Delete</span>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:4px">
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Blood Pressure</div>
+          <div style="font-size:13px;font-weight:700;color:#ef4444;margin-top:3px">${r.findings.bp}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Blood Glucose</div>
+          <div style="font-size:13px;font-weight:700;color:var(--warn);margin-top:3px">${r.findings.glucose}</div>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--border);border-radius:7px;padding:9px">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">Diagnoses</div>
+          <div style="font-size:11px;font-weight:600;color:var(--accent2);margin-top:3px">${r.findings.diagnoses.join(', ')}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function viewReport(id){
+  const r = getStoredReports().find(x=>x.id===id);
+  if(!r) return;
+  const detail = document.getElementById('report-detail');
+  document.getElementById('rd-title').textContent = r.hospital + ' — ' + r.date;
+  document.getElementById('rd-body').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Report Info</div>
+        <div style="font-size:13px;margin-bottom:4px">🏥 <strong>${r.hospital}</strong></div>
+        <div style="font-size:13px;margin-bottom:4px">📅 ${r.date}</div>
+        <div style="font-size:13px">📄 ${r.type}</div>
+      </div>
+      <div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Key Findings</div>
+        <div style="font-size:13px;margin-bottom:4px">❤️ BP: <strong>${r.findings.bp}</strong></div>
+        <div style="font-size:13px;margin-bottom:4px">🩸 Glucose: <strong>${r.findings.glucose}</strong></div>
+        <div style="font-size:13px">💊 Meds: <strong>${r.findings.meds.join(', ')}</strong></div>
+      </div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Diagnoses</div>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px">
+      ${r.findings.diagnoses.map(d=>`<span style="background:rgba(139,92,246,.15);border:1px solid rgba(139,92,246,.25);color:var(--accent2);border-radius:6px;padding:4px 10px;font-size:12px">${d}</span>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Full Report Text</div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px;font-size:13px;line-height:1.7;color:var(--muted)">${r.text}</div>`;
+  detail.style.display='block';
+  detail.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+function closeDetail(){
+  const d=document.getElementById('report-detail'); if(d) d.style.display='none';
+}
+
+function deleteReport(id){
+  if(!confirm('Delete this report?')) return;
+  const list = getStoredReports().filter(r=>r.id!==id);
+  saveReports(list);
+  renderReportList();
+  closeDetail();
+  toast('info','Report Deleted','The report has been removed.');
+}
+
+function loadSampleReport(){
+  document.getElementById('hr-hosp').value = 'City General Hospital';
+  document.getElementById('hr-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('hr-type').value = 'Discharge Summary';
+  document.getElementById('hr-text').value = 'Patient admitted 2024-11-10. Diagnosed with hypertension (BP 165/105). History of TIA. Prescribed amlodipine 5mg. Fasting glucose 142 mg/dL. Total cholesterol 230 mg/dL. Advised lifestyle changes and follow-up in 4 weeks.';
+}
+
+function submitReport(){
+  const hosp  = document.getElementById('hr-hosp').value.trim();
+  const date  = document.getElementById('hr-date').value;
+  const type  = document.getElementById('hr-type').value;
+  const text  = document.getElementById('hr-text').value.trim();
+  const alertEl = document.getElementById('hr-alert');
+
+  if(!hosp || !text){
+    alertEl.style.display='block';
+    alertEl.style.background='rgba(239,68,68,.12)';
+    alertEl.style.border='1px solid rgba(239,68,68,.3)';
+    alertEl.style.color='#fca5a5';
+    alertEl.textContent='❌ Hospital name and report text are required.';
+    return;
+  }
+
+  const btn=document.getElementById('hr-btn'); const spin=document.getElementById('hr-spin');
+  btn.disabled=true; spin.classList.add('show');
+
+  // Hide previous AI result while loading
+  const aiCard = document.getElementById('ai-analysis-card');
+  aiCard.style.display='none';
+
+  // Local keyword extraction (always used for storage)
+  const bpMatch   = text.match(/BP[\s:]+(\d{2,3}\/\d{2,3})/i);
+  const glucMatch = text.match(/glucose[\s:]+(\d{2,3}[\.\d]*\s*mg\/dL)/i);
+  const cholMatch = text.match(/cholesterol[\s:]+(\d{2,3}[\.\d]*\s*mg\/dL)/i);
+  const diagKw    = ['hypertension','diabetes','tia','stroke','atrial fibrillation','lv','echo','hyperlipidemia','ckd'];
+  const diagnoses = diagKw.filter(k=>text.toLowerCase().includes(k))
+                           .map(k=>k.replace(/\b\w/g,c=>c.toUpperCase()));
+  const medMatch  = text.match(/prescribed?\s+([A-Za-z]+\s*[\d\.]*\s*mg[^\.\n]*)/gi)||[];
+
+  const newReport = {
+    id: 'r' + Date.now(),
+    hospital: hosp,
+    date: date || new Date().toISOString().slice(0,10),
+    type,
+    text,
+    findings:{
+      bp: bpMatch ? bpMatch[1]+' mmHg' : 'Not found',
+      glucose: glucMatch ? glucMatch[1] : 'Not found',
+      cholesterol: cholMatch ? cholMatch[1] : 'Not found',
+      diagnoses: diagnoses.length ? diagnoses : ['See full report'],
+      meds: medMatch.length ? medMatch.map(m=>m.replace(/^prescribed?\s+/i,'').trim()) : ['See full report'],
+    }
+  };
+
+  const list = getStoredReports();
+  list.unshift(newReport);
+  saveReports(list);
+
+  // Call IBM Granite AI for analysis
+  fetch(API + '/report/summarise', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ report_text: text, hospital_name: hosp })
+  })
+  .then(r => r.json())
+  .then(res => {
+    btn.disabled=false; spin.classList.remove('show');
+    alertEl.style.display='block';
+
+    if(res.success && res.data){
+      const d = res.data;
+
+      // Store AI findings back onto the report
+      newReport.ai = d;
+      saveReports(getStoredReports()); // already saved above; update with ai key
+      const stored = getStoredReports();
+      const idx = stored.findIndex(x=>x.id===newReport.id);
+      if(idx>=0){ stored[idx].ai=d; saveReports(stored); }
+
+      alertEl.style.background='rgba(16,185,129,.12)';
+      alertEl.style.border='1px solid rgba(16,185,129,.3)';
+      alertEl.style.color='#6ee7b7';
+      alertEl.textContent='✅ Report saved and analysed by AI successfully!';
+
+      renderAIAnalysis(d);
+      aiCard.style.display='block';
+      aiCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+      toast('ok','AI Analysis Complete','Granite AI has extracted key findings from your report.');
+    } else {
+      // Fallback — show local extraction result
+      alertEl.style.background='rgba(245,158,11,.12)';
+      alertEl.style.border='1px solid rgba(245,158,11,.3)';
+      alertEl.style.color='#fcd34d';
+      alertEl.textContent='⚠️ Report saved. AI analysis unavailable — showing extracted data.';
+      renderAIAnalysisFallback(newReport.findings, hosp);
+      aiCard.style.display='block';
+      aiCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+      toast('warn','Report Saved','AI analysis unavailable; local extraction used.');
+    }
+  })
+  .catch(()=>{
+    btn.disabled=false; spin.classList.remove('show');
+    alertEl.style.display='block';
+    alertEl.style.background='rgba(245,158,11,.12)';
+    alertEl.style.border='1px solid rgba(245,158,11,.3)';
+    alertEl.style.color='#fcd34d';
+    alertEl.textContent='⚠️ Report saved. AI analysis unavailable — showing extracted data.';
+    renderAIAnalysisFallback(newReport.findings, hosp);
+    aiCard.style.display='block';
+    aiCard.scrollIntoView({behavior:'smooth', block:'nearest'});
+    toast('warn','Report Saved','AI analysis unavailable; local extraction used.');
+  })
+  .finally(()=>{
+    document.getElementById('hr-hosp').value='';
+    document.getElementById('hr-date').value='';
+    document.getElementById('hr-text').value='';
+    renderReportList();
+  });
+}
+
+/* Render AI analysis result from Granite response */
+function renderAIAnalysis(d){
+  // Summary
+  document.getElementById('ai-summary-box').innerHTML =
+    '<strong style="color:var(--accent)">📋 Summary</strong><br>' + (d.summary || 'No summary available.');
+
+  // Metric tiles
+  const tiles = [
+    { label:'Blood Pressure', values: d.bp_readings_found||[], color:'#ef4444', icon:'❤️' },
+    { label:'Blood Glucose',  values: d.glucose_readings_found||[], color:'var(--warn)', icon:'🩸' },
+    { label:'Cholesterol',    values: d.cholesterol_readings_found||[], color:'var(--accent2)', icon:'🧪' },
+  ];
+  document.getElementById('ai-metric-tiles').innerHTML = tiles.map(t=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:18px;margin-bottom:4px">${t.icon}</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:700">${t.label}</div>
+      ${t.values.length
+        ? t.values.map(v=>`<div style="font-size:13px;font-weight:700;color:${t.color};margin-bottom:2px">${v}</div>`).join('')
+        : `<div style="font-size:12px;color:var(--muted)">Not found in report</div>`}
+    </div>`).join('');
+
+  // Diagnoses
+  const diags = d.key_diagnoses||[];
+  document.getElementById('ai-diagnoses').innerHTML = diags.length
+    ? diags.map(x=>`<span style="display:inline-block;margin:3px 4px 3px 0;background:rgba(139,92,246,.15);
+        border:1px solid rgba(139,92,246,.25);color:var(--accent2);border-radius:6px;
+        padding:4px 10px;font-size:12px">${x}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--muted)">None identified</span>';
+
+  // Medications
+  const meds = d.relevant_medications||[];
+  document.getElementById('ai-meds').innerHTML = meds.length
+    ? meds.map(m=>`<span style="display:inline-block;margin:3px 4px 3px 0;background:rgba(16,185,129,.12);
+        border:1px solid rgba(16,185,129,.2);color:var(--ok);border-radius:6px;
+        padding:4px 10px;font-size:12px">💊 ${m}</span>`).join('')
+    : '<span style="font-size:12px;color:var(--muted)">None listed</span>';
+
+  // Cardiovascular history
+  const cardio = d.cardiovascular_history||'';
+  const cardioWrap = document.getElementById('ai-cardio-wrap');
+  if(cardio && cardio.toLowerCase() !== 'none' && cardio.toLowerCase() !== 'not mentioned'){
+    document.getElementById('ai-cardio-text').textContent = cardio;
+    cardioWrap.style.display='block';
+  } else {
+    cardioWrap.style.display='none';
+  }
+
+  // Disclaimer
+  document.getElementById('ai-disclaimer').textContent = '⚠️ ' + (d.disclaimer ||
+    'This tool does not diagnose. Any health concerns should be discussed with your doctor.');
+}
+
+/* Fallback renderer using local keyword extraction */
+function renderAIAnalysisFallback(findings, hosp){
+  document.getElementById('ai-summary-box').innerHTML =
+    '<strong style="color:var(--warn)">📋 Locally Extracted Summary</strong><br>' +
+    'AI analysis is currently unavailable. The following data was extracted automatically from your report text. ' +
+    'For a complete analysis, please consult your healthcare provider.';
+
+  document.getElementById('ai-metric-tiles').innerHTML = `
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:18px;margin-bottom:4px">❤️</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:700">Blood Pressure</div>
+      <div style="font-size:13px;font-weight:700;color:#ef4444">${findings.bp}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:18px;margin-bottom:4px">🩸</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:700">Blood Glucose</div>
+      <div style="font-size:13px;font-weight:700;color:var(--warn)">${findings.glucose}</div>
+    </div>
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px">
+      <div style="font-size:18px;margin-bottom:4px">🧪</div>
+      <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;font-weight:700">Cholesterol</div>
+      <div style="font-size:13px;font-weight:700;color:var(--accent2)">${findings.cholesterol}</div>
+    </div>`;
+
+  document.getElementById('ai-diagnoses').innerHTML = findings.diagnoses.map(x=>
+    `<span style="display:inline-block;margin:3px 4px 3px 0;background:rgba(139,92,246,.15);
+      border:1px solid rgba(139,92,246,.25);color:var(--accent2);border-radius:6px;
+      padding:4px 10px;font-size:12px">${x}</span>`).join('');
+
+  document.getElementById('ai-meds').innerHTML = findings.meds.map(m=>
+    `<span style="display:inline-block;margin:3px 4px 3px 0;background:rgba(16,185,129,.12);
+      border:1px solid rgba(16,185,129,.2);color:var(--ok);border-radius:6px;
+      padding:4px 10px;font-size:12px">💊 ${m}</span>`).join('');
+
+  document.getElementById('ai-cardio-wrap').style.display='none';
+
+  document.getElementById('ai-disclaimer').textContent =
+    '⚠️ This is an automated keyword extraction, not an AI analysis. Please connect the IBM Granite AI service for full analysis. This does not replace medical advice.';
+}
+
+/* ─── Navigation ──────────────────────────────────────────────────────────── */
+const builders={overview:pageOverview,vitals:pageVitals,wristband:pageWristband,medications:pageMedications,hosp_reports:pageHospitalReports,emergency:pageEmergency};
+function showPage(name){
+  const b=builders[name]; if(!b) return;
+  document.getElementById('main-content').innerHTML=b();
+  document.querySelectorAll('nav li a').forEach(a=>a.classList.toggle('active',a.dataset.page===name));
+  if(name==='emergency') loadNeighbors();
+  if(name==='hosp_reports') renderReportList();
+}
+document.querySelectorAll('nav li a').forEach(a=>{
+  a.addEventListener('click',e=>{e.preventDefault();showPage(a.dataset.page);});
+});
+showPage('overview');
+</script>
+</body>
+</html>
